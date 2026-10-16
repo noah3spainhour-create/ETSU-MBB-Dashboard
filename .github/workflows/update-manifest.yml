@@ -1,0 +1,35 @@
+name: Update data manifest
+
+# Runs whenever a CSV is added, changed or removed in the data folder,
+# and rewrites data/manifest.json so the dashboard picks it up.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/**.csv"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild manifest
+        run: |
+          cd data
+          ls -1 *.csv 2>/dev/null | sort | jq -R -s -c 'split("\n") | map(select(length > 0))' > manifest.json
+          cat manifest.json
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- data/manifest.json; then
+            echo "Manifest already up to date"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add data/manifest.json
+            git commit -m "Update data manifest"
+            git push
+          fi
