@@ -186,6 +186,7 @@ body.dragging .dropveil{display:grid}
 .ex.imb{background:var(--warnbg);border-radius:10px;padding:10px 12px}
 .ex.imb h5{color:var(--warn)}
 .imbnote{font-size:13px;margin:2px 0 6px}
+.pdfview{display:block;width:100%;height:min(1100px,130vw);border:0}
 .paper{background:#fff;color:#0E1A2B;border:1px solid var(--line);border-radius:12px;max-width:860px;width:100%;margin:0 auto;overflow:hidden;box-shadow:var(--shadow)}
 .paper .muted{color:#5D6879}
 .rp-head{background:#041E42;color:#fff;padding:22px 28px 18px;border-bottom:4px solid #FFC72C}
@@ -312,7 +313,7 @@ body.dragging .dropveil{display:grid}
 
   <!-- REPORT -->
   <section class="view" id="v-report">
-    <div class="pagehead"><div><h2>Coach report</h2><p>A one-page summary in plain language for the coaching staff. It uses the test date picked at the top of the page.</p></div>
+    <div class="pagehead"><div><h2>Coach report</h2><p>A one-page snapshot for the coaching staff: where each player lands on the quadrant, his bodyweight and his readiness score. It uses the test date picked at the top of the page.</p></div>
       <button class="btn btn-gold" id="pdfBtn">⬇ Download PDF</button></div>
     <div class="paper" id="paper"></div>
   </section>
@@ -738,135 +739,105 @@ body.dragging .dropveil{display:grid}
   }
   const hasImb = (r) => r.decel_abs > 10 || r.conc_abs > 10 || r.land_abs > 15;
 
-  // ---------- COACH REPORT ----------
-  const RSTAT = {
-    ready: { word: "Ready to go", short: "Green", rgb: [28, 127, 71], bg: [229, 243, 235], cls: "p-ready", todo: "Normal practice." },
-    mon: { word: "Keep an eye on", short: "Yellow", rgb: [154, 106, 0], bg: [255, 243, 214], cls: "p-mon", todo: "Normal practice. Watch his workload and how he moves." },
-    fat: { word: "Lighter day", short: "Red", rgb: [184, 50, 42], bg: [251, 230, 228], cls: "p-fat", todo: "Keep jumping and sprinting lower today. Check in on how he feels." },
-    none: { word: "No score yet", short: "Gray", rgb: [93, 104, 121], bg: [240, 243, 247], cls: "p-none", todo: "Not enough tests to compare yet." }
-  };
-  function vsNormal(r) {
-    if (r.bw_flag) return "Retest needed";
-    if (r.perf == null) return "First test - sets his normal";
-    const sc = r.score;
-    return sc >= 9 ? "Better than his normal" : sc >= 7 ? "About his normal" : sc >= 5 ? "A bit below his normal" : "Well below his normal";
-  }
-  function plainNotes(r) {
-    const n = [], side = (v) => (v > 0 ? "left" : "right");
-    if (r.land_abs > 15) n.push(`Lands harder on his ${side(r.land)} leg`);
-    if (r.conc_abs > 15) n.push(`Pushes off harder with his ${side(r.conc)} leg`);
-    if (r.decel_abs > 15) n.push(`Leans on his ${side(r.decel)} leg when stopping`);
-    if (r.reps != null && r.reps < 3) n.push(`Only ${r.reps} good jump${r.reps > 1 ? "s" : ""} - retest next week`);
-    if (r.bw_flag) n.push("Scale reading looked off - retest");
-    return n;
-  }
-  function reportData() {
-    const t = curTeam(), cur = curRows();
-    const rows = cur.slice().sort((a, b) => (a.score ?? 99) - (b.score ?? 99) || a.name.localeCompare(b.name)).map((r) => ({ r, st: RSTAT[r.band], vs: vsNormal(r), notes: plainNotes(r) }));
-    const count = (b) => cur.filter((r) => r.band === b).length;
-    const lines = [];
-    if (t.bw_issue) lines.push("The scale readings on this test looked off for most players, so treat this week's numbers with caution and plan to retest.");
-    else if (t.ref) {
-      const up = (v) => v > 0.005, jh = t.jh_chg / (t.jh - t.jh_chg), rs = t.rsi_chg;
-      if (jh > 0.01 && up(rs)) lines.push("As a team, players are jumping higher and getting off the floor quicker than the last test. That's a good sign.");
-      else if (jh <= 0.01 && up(rs)) lines.push("As a team, players jumped a little lower but got off the floor quicker than the last test. That is not a sign of tiredness.");
-      else if (jh > 0.01) lines.push("As a team, players jumped a bit higher but were slower getting off the floor than the last test.");
-      else lines.push("As a team, players are jumping lower and slower than the last test. The group may be carrying some fatigue.");
-    } else lines.push("This is the first test on file. It sets each player's normal, so scores start next week.");
-    const watch = rows.filter((x) => x.r.band === "fat" || (x.r.score != null && x.r.score <= 5) || x.notes.some((n) => /Lands|Pushes|Leans/.test(n)));
-    return { t, cur, rows, counts: { ready: count("ready"), mon: count("mon"), fat: count("fat"), none: count("none") }, lines, watch };
-  }
-  const watchText = (x) => {
-    const bits = [x.vs === "Well below his normal" || x.vs === "A bit below his normal" ? `Jumping ${x.vs.toLowerCase().replace("his normal", "his normal")}.` : null, ...x.notes.map((n) => n + ".")].filter(Boolean);
-    return { said: bits.join(" ") || x.vs + ".", todo: x.r.band === "fat" ? RSTAT.fat.todo : x.notes.some((n) => /Lands|Pushes|Leans/.test(n)) ? "Fine to practice. Strength staff will add extra single-leg work." : x.st.todo };
-  };
-
-  function renderReport() {
-    const D = reportData(), p = $("paper"); p.replaceChildren();
-    const hd = el("div", "rp-head"); hd.appendChild(el("div", "rp-kicker", "ETSU MEN'S BASKETBALL")); const hr = el("div", "rp-hrow"); hr.append(el("div", "rp-title", "Jump Test Report"), el("div", "rp-date", dLong(date))); hd.appendChild(hr); p.appendChild(hd);
-    const q = el("div", "rp-sec"); q.appendChild(el("h4", "", "The quick version"));
-    const tiles = el("div", "rp-tiles");
-    ["ready", "mon", "fat", "none"].forEach((b) => { if (b === "none" && !D.counts.none) return; const tl = el("div", "rp-tile " + RSTAT[b].cls); tl.append(el("div", "rp-n", String(D.counts[b])), el("div", "", RSTAT[b].word)); tiles.appendChild(tl); });
-    q.appendChild(tiles); D.lines.forEach((l) => q.appendChild(el("p", "", l))); p.appendChild(q);
-    const ts = el("div", "rp-sec"); ts.appendChild(el("h4", "", "Every player"));
-    const tb = el("table", "rp-table"); const th = el("tr"); ["Player", "Today", "Score", "Compared to his normal", "Notes"].forEach((x) => th.appendChild(el("th", "", x))); const thead = el("thead"); thead.appendChild(th); tb.appendChild(thead);
-    const body = el("tbody"); D.rows.forEach((x) => { const tr = el("tr"); tr.appendChild(el("td", "rp-name", x.r.name)); const s = el("td"); s.appendChild(el("span", "pill " + x.st.cls, x.st.word)); tr.appendChild(s); tr.appendChild(el("td", "", x.r.score == null ? "-" : `${x.r.score}/10`)); tr.appendChild(el("td", "", x.vs)); tr.appendChild(el("td", "", x.notes.join(". ") || "-")); body.appendChild(tr); }); tb.appendChild(body);
-    ts.appendChild(tb); p.appendChild(ts);
-    if (D.watch.length) { const ws = el("div", "rp-sec"); ws.appendChild(el("h4", "", "Players to keep an eye on")); D.watch.forEach((x) => { const w = watchText(x), d = el("div", "rp-watch"); d.style.borderLeftColor = `rgb(${x.st.rgb.join(",")})`; const top = el("div"); top.appendChild(el("b", "", x.r.name)); top.append(` - ${x.st.word}`); d.append(top, el("div", "", w.said)); const td = el("div", "muted"); td.appendChild(el("b", "", "What to do: ")); td.append(w.todo); d.appendChild(td); ws.appendChild(d); }); p.appendChild(ws); }
-    const k = el("div", "rp-sec rp-key"); k.appendChild(el("h4", "", "How to read this"));
-    [["ready", "Score 8-10. Fresh and jumping like himself."], ["mon", "Score 5-7. A little below his best. Normal practice, keep an eye on him."], ["fat", "Score 1-4. Legs are tired. Lighter day on jumping and sprinting."]].forEach(([b, t]) => { const d = el("div"); d.append(el("span", "pill " + RSTAT[b].cls, RSTAT[b].word), " " + t); k.appendChild(d); });
-    k.appendChild(el("p", "muted", "Each player does a few max-effort jumps on the force plates. The score compares him to his own normal from earlier weeks, not to his teammates. 7 means he's jumping like his usual self."));
-    p.appendChild(k);
-  }
-
+  // ---------- COACH REPORT (one-page snapshot) ----------
+  const QRGB = { elite: [201, 138, 0], power: [45, 111, 181], quick: [123, 79, 184], found: [95, 107, 122] };
+  const QTINT = { elite: [251, 243, 222], power: [229, 238, 248], quick: [240, 234, 248], found: [238, 240, 243] };
+  const SRGB = (s) => (s == null ? [93, 104, 121] : s >= 8 ? [28, 127, 71] : s >= 5 ? [176, 122, 0] : [184, 50, 42]);
+  const LB = (kg) => (kg == null ? null : kg * 2.20462);
   function pdfSafe(s) { return String(s).replace(/[–—]/g, "-").replace(/[·•]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7E]/g, ""); }
+
   function buildPDF() {
     if (!window.jspdf) { toast("The PDF tool didn't load. Check your internet connection and refresh."); return null; }
-    const D = reportData(), { jsPDF } = window.jspdf, doc = new jsPDF({ unit: "pt", format: "letter" });
-    const PW = 612, PH = 792, M = 40, CW = PW - 2 * M, NAVY = [4, 30, 66], GOLD = [255, 199, 44], INK = [14, 26, 43], MUTED = [93, 104, 121], LINE = [225, 229, 236];
-    let y = 0, page = 1;
-    const T = (s) => pdfSafe(s);
-    const font = (sz, st = "normal", col = INK) => { doc.setFont("helvetica", st); doc.setFontSize(sz); doc.setTextColor(...col); };
-    const footer = () => { font(8.5, "normal", MUTED); doc.text(T(`ETSU MBB Jump Test Report - ${dLong(date)}`), M, PH - 22); doc.text(`Page ${page}`, PW - M, PH - 22, { align: "right" }); };
-    const need = (h) => { if (y + h > PH - 46) { footer(); doc.addPage(); page++; y = 40; return true; } return false; };
+    const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: "pt", format: "letter" });
+    const t = curTeam(), cur = curRows().slice().sort((a, b) => a.name.localeCompare(b.name));
+    const PW = 612, PH = 792, M = 36, CW = PW - 2 * M, NAVY = [4, 30, 66], GOLD = [255, 199, 44], INK = [14, 26, 43], MUTED = [93, 104, 121], LINE = [225, 229, 236];
+    const T = pdfSafe, font = (sz, st = "normal", col = INK) => { doc.setFont("helvetica", st); doc.setFontSize(sz); doc.setTextColor(...col); };
+    let page = 1;
+    const footer = () => { font(8, "normal", MUTED); doc.text(T(`ETSU MBB Jump Snapshot - ${dLong(date)}`), M, PH - 18); doc.text(`Page ${page}`, PW - M, PH - 18, { align: "right" }); };
+
     // header
-    doc.setFillColor(...NAVY); doc.rect(0, 0, PW, 78, "F"); doc.setFillColor(...GOLD); doc.rect(0, 78, PW, 4, "F");
-    font(9, "bold", GOLD); doc.text("ETSU MEN'S BASKETBALL", M, 30);
-    font(24, "bold", [255, 255, 255]); doc.text("Jump Test Report", M, 58);
-    font(12, "normal", [205, 215, 230]); doc.text(T(dLong(date)), PW - M, 58, { align: "right" });
-    y = 108;
-    // quick version
-    font(14, "bold"); doc.text("The quick version", M, y); y += 14;
-    const bands = ["ready", "mon", "fat", "none"].filter((b) => b !== "none" || D.counts.none), tw = (CW - (bands.length - 1) * 10) / bands.length;
-    bands.forEach((b, i) => { const x = M + i * (tw + 10), S = RSTAT[b]; doc.setFillColor(...S.bg); doc.roundedRect(x, y, tw, 58, 6, 6, "F"); doc.setFillColor(...S.rgb); doc.rect(x, y, 5, 58, "F"); font(26, "bold", S.rgb); doc.text(String(D.counts[b]), x + 16, y + 32); font(10, "bold", S.rgb); doc.text(T(S.word), x + 16, y + 48); });
-    y += 76;
-    font(11, "normal"); D.lines.forEach((l) => { const w = doc.splitTextToSize(T(l), CW); doc.text(w, M, y); y += w.length * 14 + 4; });
-    y += 8;
-    // table
-    const cols = [["Player", 118], ["Today", 92], ["Score", 44], ["Compared to his normal", 122], ["Notes", CW - 118 - 92 - 44 - 122]];
-    const drawHead = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 22, "F"); font(9, "bold", [255, 255, 255]); let x = M; cols.forEach(([h, w]) => { doc.text(h, x + 6, y + 14.5); x += w; }); y += 22; };
-    need(60); font(14, "bold"); doc.text("Every player", M, y); y += 10; drawHead();
-    D.rows.forEach((row, i) => {
-      font(9.5, "normal"); const notes = doc.splitTextToSize(T(row.notes.join(". ") || "-"), cols[4][1] - 12), vs = doc.splitTextToSize(T(row.vs), cols[3][1] - 12);
-      const h = Math.max(24, 10 + Math.max(notes.length, vs.length) * 11.5);
-      if (need(h)) drawHead();
-      if (i % 2) { doc.setFillColor(247, 249, 251); doc.rect(M, y, CW, h, "F"); }
-      doc.setDrawColor(...LINE); doc.line(M, y + h, M + CW, y + h);
-      let x = M; const mid = y + 15.5;
-      font(10, "bold"); doc.text(T(row.r.name), x + 6, mid); x += cols[0][1];
-      const S = row.st; doc.setFillColor(...S.bg); font(8.5, "bold", S.rgb); const pw = doc.getTextWidth(S.word) + 14; doc.roundedRect(x + 5, y + 6, pw, 14, 7, 7, "F"); doc.text(S.word, x + 12, y + 16); x += cols[1][1];
-      font(10, "bold", row.r.score == null ? MUTED : S.rgb); doc.text(row.r.score == null ? "-" : `${row.r.score}/10`, x + 6, mid); x += cols[2][1];
-      font(9.5, "normal"); doc.text(vs, x + 6, mid); x += cols[3][1];
-      font(9.5, "normal", row.notes.length ? INK : MUTED); doc.text(notes, x + 6, mid);
-      y += h;
+    doc.setFillColor(...NAVY); doc.rect(0, 0, PW, 62, "F"); doc.setFillColor(...GOLD); doc.rect(0, 62, PW, 3, "F");
+    font(8.5, "bold", GOLD); doc.text("ETSU MEN'S BASKETBALL", M, 24);
+    font(20, "bold", [255, 255, 255]); doc.text("Jump Snapshot", M, 47);
+    font(11, "normal", [205, 215, 230]); doc.text(T(dLong(date)), PW - M, 47, { align: "right" });
+
+    // ----- quadrant chart -----
+    const top = 84, H = 300; font(12, "bold"); doc.text("Where each player lands", M, top);
+    const x0 = M + 18, x1 = PW - M, y0 = top + 12, y1 = top + H;
+    const ex = d3.extent(cur, (r) => r.rsi), ey = d3.extent(cur, (r) => r.jh);
+    const px = Math.max((ex[1] - ex[0]) * 0.1, 0.02), py = Math.max((ey[1] - ey[0]) * 0.1, 1);
+    const X = d3.scaleLinear([Math.min(ex[0], t.rsi) - px, Math.max(ex[1], t.rsi) + px], [x0 + 6, x1 - 6]);
+    const Y = d3.scaleLinear([Math.min(ey[0], t.jh) - py, Math.max(ey[1], t.jh) + py], [y1 - 6, y0 + 6]);
+    const mx = X(t.rsi), my = Y(t.jh);
+    [["power", x0, y0, mx - x0, my - y0], ["elite", mx, y0, x1 - mx, my - y0], ["found", x0, my, mx - x0, y1 - my], ["quick", mx, my, x1 - mx, y1 - my]].forEach(([q, zx, zy, zw, zh]) => { doc.setFillColor(...QTINT[q]); doc.rect(zx, zy, Math.max(0, zw), Math.max(0, zh), "F"); });
+    doc.setDrawColor(...LINE); doc.setLineWidth(0.8); doc.rect(x0, y0, x1 - x0, y1 - y0, "S");
+    doc.setDrawColor(150, 158, 170); doc.setLineWidth(0.7); doc.setLineDashPattern([3, 3], 0); doc.line(mx, y0, mx, y1); doc.line(x0, my, x1, my); doc.setLineDashPattern([], 0);
+    font(7, "normal", MUTED); doc.text("team average", mx + 3, y1 - 4); doc.text("team average", x1 - 4, my - 3, { align: "right" });
+    const corner = { power: [x0 + 8, y0 + 14, "left"], elite: [x1 - 8, y0 + 14, "right"], found: [x0 + 8, y1 - 18, "left"], quick: [x1 - 8, y1 - 18, "right"] };
+    QKEYS.forEach((q) => { const [cx, cy, al] = corner[q]; font(9.5, "bold", QRGB[q]); doc.text(Q[q].name.toUpperCase(), cx, cy, { align: al }); font(7.5, "normal", MUTED); doc.text(T(Q[q].short), cx, cy + 10, { align: al }); });
+    font(8.5, "bold", MUTED); doc.text("Quicker off the floor  >", x1, y1 + 13, { align: "right" }); doc.text("Higher jump  >", x0 - 6, y1, { angle: 90 });
+    // points, then labels placed to avoid other labels and dots
+    const pts = cur.map((r) => ({ r, cx: X(r.rsi), cy: Y(r.jh) })), placed = [];
+    font(7.5, "bold");
+    const hits = (bx, by, bw) => placed.some((o) => bx < o.bx + o.bw + 2 && o.bx < bx + bw + 2 && Math.abs(o.by - by) < 9) || pts.some((q) => q.cx > bx - 5 && q.cx < bx + bw + 5 && q.cy > by - 9 && q.cy < by + 4);
+    pts.slice().sort((a, b) => a.cy - b.cy).forEach((p) => {
+      const w = doc.getTextWidth(T(p.r.name)), others = pts.filter((q) => q !== p);
+      const tries = [];
+      [0, -9, 9, -18, 18].forEach((dy) => { tries.push([p.cx + 7, p.cy + 2.6 + dy]); tries.push([p.cx - 7 - w, p.cy + 2.6 + dy]); });
+      let pick = null;
+      for (const [bx, by] of tries) {
+        if (bx < x0 + 2 || bx + w > x1 - 2 || by < y0 + 8 || by > y1 - 3) continue;
+        const hit = placed.some((o) => bx < o.bx + o.bw + 2 && o.bx < bx + w + 2 && Math.abs(o.by - by) < 9) || others.some((q) => q.cx > bx - 5 && q.cx < bx + w + 5 && q.cy > by - 10 && q.cy < by + 5);
+        if (!hit) { pick = [bx, by]; break; }
+      }
+      if (!pick) pick = tries.find(([bx, by]) => bx >= x0 + 2 && bx + w <= x1 - 2) || tries[0];
+      placed.push({ p, bx: pick[0], by: pick[1], bw: w });
     });
-    y += 22;
-    // watch list
-    if (D.watch.length) {
-      need(60); font(14, "bold"); doc.text("Players to keep an eye on", M, y); y += 12;
-      D.watch.forEach((x) => {
-        const w = watchText(x); font(10, "normal"); const said = doc.splitTextToSize(T(w.said), CW - 24), todo = doc.splitTextToSize(T("What to do: " + w.todo), CW - 24);
-        const h = 26 + said.length * 13 + todo.length * 13; need(h + 8);
-        doc.setFillColor(...x.st.bg); doc.roundedRect(M, y, CW, h, 6, 6, "F"); doc.setFillColor(...x.st.rgb); doc.rect(M, y, 5, h, "F");
-        font(11, "bold"); doc.text(T(x.r.name), M + 16, y + 17); const nw = doc.getTextWidth(T(x.r.name)); font(10, "bold", x.st.rgb); doc.text(T("  -  " + x.st.word), M + 16 + nw, y + 17);
-        font(10, "normal"); doc.text(said, M + 16, y + 32); font(10, "normal", MUTED); doc.text(todo, M + 16, y + 32 + said.length * 13);
-        y += h + 8;
-      });
-      y += 12;
-    }
-    // key
-    need(120); font(14, "bold"); doc.text("How to read this", M, y); y += 16;
-    [["ready", "Score 8-10. Fresh and jumping like himself."], ["mon", "Score 5-7. A little below his best. Normal practice, keep an eye on him."], ["fat", "Score 1-4. Legs are tired. Lighter day on jumping and sprinting."]].forEach(([b, t]) => {
-      const S = RSTAT[b]; doc.setFillColor(...S.bg); font(8.5, "bold", S.rgb); const pw = doc.getTextWidth(S.word) + 14; doc.roundedRect(M, y - 10, pw, 14, 7, 7, "F"); doc.text(S.word, M + 7, y); font(10, "normal"); doc.text(t, M + 104, y); y += 20;
+    pts.forEach((p) => { doc.setFillColor(...QRGB[p.r.q]); doc.setDrawColor(255, 255, 255); doc.setLineWidth(1.2); doc.circle(p.cx, p.cy, 4.2, "FD"); });
+    placed.forEach((o) => { doc.setFillColor(255, 255, 255); doc.roundedRect(o.bx - 2, o.by - 7, o.bw + 4, 9.5, 2, 2, "F"); font(7.5, "bold", INK); doc.text(T(o.p.r.name), o.bx, o.by); });
+
+    // ----- table -----
+    let y = y1 + 34; font(12, "bold"); doc.text("Players", M, y); y += 8;
+    const cols = [["Player", 160], ["Bodyweight", 90], ["Jumper type", 150], ["Readiness (1-10)", CW - 400]];
+    const head = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 18, "F"); font(8.5, "bold", [255, 255, 255]); let x = M; cols.forEach(([h, w]) => { doc.text(h, x + 6, y + 12.5); x += w; }); y += 18; };
+    head();
+    const RH = 17;
+    cur.forEach((r, i) => {
+      if (y + RH > PH - 54) { footer(); doc.addPage(); page++; y = 40; head(); }
+      if (i % 2) { doc.setFillColor(247, 249, 251); doc.rect(M, y, CW, RH, "F"); }
+      doc.setDrawColor(...LINE); doc.setLineWidth(0.5); doc.line(M, y + RH, M + CW, y + RH);
+      const base = y + 11.8; let x = M;
+      font(9.5, "bold"); doc.text(T(r.name), x + 6, base); x += cols[0][1];
+      font(9.5, "normal"); doc.text(r.bw == null ? "-" : `${Math.round(LB(r.bw))} lb`, x + 6, base); x += cols[1][1];
+      doc.setFillColor(...QRGB[r.q]); doc.rect(x + 6, y + 5, 7, 7, "F"); font(9, "bold", QRGB[r.q]); doc.text(Q[r.q].name, x + 18, base); x += cols[2][1];
+      const col = SRGB(r.score);
+      font(10, "bold", col); doc.text(r.score == null ? "-" : String(r.score), x + 14, base, { align: "right" });
+      const bx = x + 22, bw = 9, gap = 2;
+      for (let s = 1; s <= 10; s++) { doc.setFillColor(...(r.score != null && s <= r.score ? col : [229, 233, 239])); doc.rect(bx + (s - 1) * (bw + gap), y + 5, bw, 7, "F"); }
+      y += RH;
     });
-    font(9.5, "normal", MUTED); const fine = doc.splitTextToSize("Each player does a few max-effort jumps on the force plates. The score compares him to his own normal from earlier weeks, not to his teammates. 7 means he's jumping like his usual self.", CW); doc.text(fine, M, y + 4);
+    y += 14;
+    if (y + 30 > PH - 30) { footer(); doc.addPage(); page++; y = 40; }
+    font(8.5, "normal", MUTED);
+    const key = doc.splitTextToSize("Readiness compares each player's jump to his own normal from earlier weeks: 10 = fresher than usual, 7 = his normal, 1 = well below his normal. A dash means no score yet (first test, or the scale reading looked off). Jumper type compares him to the team average on this test.", CW);
+    doc.text(key, M, y);
     footer();
     return doc;
+  }
+  let previewURL = null;
+  function renderReport() {
+    const p = $("paper"); p.replaceChildren();
+    const doc = buildPDF(); if (!doc) { p.appendChild(el("div", "empty", "The PDF tool didn't load. Check your internet connection and refresh.")); return; }
+    if (previewURL) URL.revokeObjectURL(previewURL);
+    previewURL = URL.createObjectURL(doc.output("blob"));
+    const o = document.createElement("object"); o.data = previewURL + "#toolbar=0&view=FitH"; o.type = "application/pdf"; o.className = "pdfview";
+    const fb = el("div", "empty"); fb.append("This browser can't preview PDFs here. Use "); fb.appendChild(el("b", "", "Download PDF")); fb.append(" above.");
+    o.appendChild(fb); p.appendChild(o);
   }
   function downloadPDF() {
     const doc = buildPDF(); if (!doc) return;
     const blob = doc.output("blob"), a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = `ETSU-MBB-Jump-Report-${date}.pdf`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    a.href = URL.createObjectURL(blob); a.download = `ETSU-MBB-Jump-Snapshot-${date}.pdf`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   // ---------- READINESS ----------

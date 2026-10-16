@@ -19,7 +19,7 @@ Tests are matched by player name and date. If a later export repeats earlier wee
 - **Jumper profiles** — jump height vs RSI-mod quadrant, split at the team averages: Explosive Elite (high & fast), Power Loader (high, slow), Quick Spring (low, fast), Foundation Builder (low & slow).
 - **Exercise plans** — for each player, 4 squat and 4 hinge variations matched to his jumper type, plus single-leg imbalance work aimed at his weaker side when his legs are more than 10% apart (15% for landing). Includes a weekly load note from readiness. Printable.
 - **Readiness** — 1–10 score vs the player's own baseline (average of up to 4 earlier clean tests): 7 + 40 × (0.7 × RSI-mod % change + 0.3 × jump height % change), capped 1–10. 1–4 Fatigued, 5–7 Monitor, 8–10 Ready.
-- **Coach report** — plain-language, traffic-light summary for coaches (Ready to go / Keep an eye on / Lighter day) with a one-click PDF download.
+- **Coach report** — one-page PDF snapshot for coaches: quadrant chart, bodyweight (lb), jumper type and readiness score for every player. No recommendations.
 - **Data & uploads** — saved tests, full results table, CSV download.
 
 **Bodyweight check:** if a player's bodyweight on a test is more than 4 kg off the median of his other tests, that test is flagged and not used as a comparison point. If half the team is flagged on one date, that whole test is treated as suspect (usually a plate-zero or weigh-in issue).
