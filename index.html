@@ -3,174 +3,333 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ETSU CMJ Dashboard</title>
+<title>ETSU MBB Performance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
 :root{
-  --navy:#041E42; --gold:#FFC72C;
-  --bg:#F3F5F8; --panel:#FFFFFF; --fg:#0E1A2B; --muted:#5B6678; --line:#DDE1E8; --soft:#EDF0F5;
-  --ok:#1F8A4C; --warn:#B57C00; --bad:#C2372F; --accent:#041E42;
-  --c1:#041E42; --c2:#C98A00; --c3:#2F7FC1; --c4:#8A4FBF; --c5:#1F8A4C; --chart-muted:#A9B1BE;
-  --head:#041E42;
+  --navy:#041E42; --navy2:#0B2A55; --gold:#FFC72C;
+  --bg:#F4F6F9; --panel:#FFFFFF; --fg:#0E1A2B; --muted:#5D6879; --line:#E1E5EC; --soft:#F0F3F7;
+  --ok:#1C7F47; --okbg:#E5F3EB; --warn:#9A6A00; --warnbg:#FFF3D6; --bad:#B8322A; --badbg:#FBE6E4;
+  --accent:#041E42; --chart-muted:#B4BCC8;
+  --q-elite:#C98A00; --q-power:#2D6FB5; --q-quick:#7B4FB8; --q-found:#5F6B7A;
+  --c1:#041E42; --c2:#2D6FB5; --c3:#C98A00; --c4:#7B4FB8;
+  --shadow:0 1px 2px rgba(4,30,66,.06),0 2px 8px rgba(4,30,66,.05);
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0A1220; --panel:#111C2E; --fg:#E8ECF3; --muted:#9AA6B8; --line:#24324A; --soft:#18243A;
-  --ok:#4CC27F; --warn:#F0B429; --bad:#F06A5F; --accent:#FFC72C;
-  --c1:#FFC72C; --c2:#6CB4F0; --c3:#B993E6; --c4:#F08A5F; --c5:#4CC27F; --chart-muted:#56637A; --head:#06152E;
+  --bg:#0A1220; --panel:#111C2E; --fg:#E8ECF3; --muted:#9AA6B8; --line:#233149; --soft:#172338;
+  --ok:#4CC27F; --okbg:#143024; --warn:#F0B429; --warnbg:#382D10; --bad:#F06A5F; --badbg:#3A1C1A;
+  --accent:#FFC72C; --chart-muted:#4F5C72;
+  --q-elite:#FFC72C; --q-power:#6CB4F0; --q-quick:#B993E6; --q-found:#94A0B2;
+  --c1:#FFC72C; --c2:#6CB4F0; --c3:#F0A35F; --c4:#B993E6; --shadow:none;
 }}
-:root[data-theme="dark"]{
-  --bg:#0A1220; --panel:#111C2E; --fg:#E8ECF3; --muted:#9AA6B8; --line:#24324A; --soft:#18243A;
-  --ok:#4CC27F; --warn:#F0B429; --bad:#F06A5F; --accent:#FFC72C;
-  --c1:#FFC72C; --c2:#6CB4F0; --c3:#B993E6; --c4:#F08A5F; --c5:#4CC27F; --chart-muted:#56637A; --head:#06152E;
-}
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 Barlow,"Segoe UI",Roboto,Arial,sans-serif}
-h1,h2,.big{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}
-.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
-header{background:var(--head);color:#fff;border-bottom:5px solid var(--gold)}
-.hrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;padding:20px 0 16px}
-h1{margin:0;font-size:32px;font-weight:700;line-height:1.05}
-.sub{color:#C9D3E3;margin-top:4px;font-size:14px;max-width:70ch}
+html{scroll-padding-top:120px}
+body{margin:0;background:var(--bg);color:var(--fg);font:14.5px/1.5 Inter,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.num,.big,h1,.score{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* header */
+header.top{background:var(--navy);color:#fff}
+.brand{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:16px 0}
+.logo{display:flex;align-items:center;gap:14px}
+.mark{width:44px;height:44px;border-radius:10px;background:var(--gold);color:var(--navy);display:grid;place-items:center;font:700 20px "Barlow Condensed",sans-serif;letter-spacing:.5px}
+h1{margin:0;font-size:26px;font-weight:700;line-height:1;letter-spacing:.3px}
+.tag{font-size:13px;color:#B9C6DA;margin-top:3px}
 .hctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.hctl label{font-size:13px;color:#C9D3E3}
-select{font:inherit;padding:7px 10px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--fg);max-width:100%}
-header select{border-color:#3A527A;background:#0B2A55;color:#fff}
-button,.btn{font:600 14px Barlow,Arial,sans-serif;border-radius:6px;border:1px solid var(--line);padding:8px 14px;cursor:pointer;background:var(--panel);color:var(--fg)}
-.btn-gold{background:var(--gold);color:#041E42;border-color:var(--gold)}
-button:focus-visible,select:focus-visible,label.btn:focus-visible,tr:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.hctl label{font-size:12.5px;color:#B9C6DA}
+header select{padding:7px 10px;border-radius:8px;border:1px solid #2F4A73;background:var(--navy2);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;border:1px solid var(--line);padding:8px 14px;cursor:pointer;background:var(--panel);font-weight:600;font-size:13.5px}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-ghost{background:transparent;border-color:#2F4A73;color:#fff}
 input[type=file]{display:none}
-main{padding:20px 0 60px;display:flex;flex-direction:column;gap:18px}
-.drop{border:2px dashed var(--line);border-radius:10px;padding:22px 16px;text-align:center;color:var(--muted);background:var(--panel)}
-.drop.over{border-color:var(--accent);background:var(--soft);color:var(--fg)}
-.drop b{color:var(--fg)}
-.take{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:8px;padding:14px 16px;font-size:16px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:12px}
-.tile,.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px}
-.tile .lbl{font-size:13px;color:var(--muted)}
-.tile .big{font-size:34px;font-weight:700;line-height:1.1;margin-top:2px;font-variant-numeric:tabular-nums}
-.tile .chg{font-size:13px;color:var(--muted);margin-top:2px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:18px}
-.card h2{margin:0;font-size:22px;font-weight:600}
-.note{font-size:13.5px;color:var(--muted);margin:2px 0 12px;max-width:80ch}
+nav.tabs{background:var(--navy);border-top:1px solid #12305C;position:sticky;top:0;z-index:20}
+nav.tabs .wrap{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs a{color:#B9C6DA;text-decoration:none;font-weight:600;font-size:14px;padding:12px 16px;border-bottom:3px solid transparent;white-space:nowrap}
+nav.tabs a:hover{color:#fff}
+nav.tabs a[aria-current=page]{color:#fff;border-bottom-color:var(--gold)}
+
+main{padding:22px 0 70px}
+.view{display:none;flex-direction:column;gap:18px}.view.on{display:flex}
+.pagehead{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:flex-end;justify-content:space-between}
+.pagehead h2{margin:0;font-size:22px;font-weight:700;letter-spacing:-.2px}
+.pagehead p{margin:2px 0 0;color:var(--muted);max-width:80ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+.card h3{margin:0;font-size:16px;font-weight:600}
+.card .note{margin:3px 0 14px;color:var(--muted);font-size:13px;max-width:80ch}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:18px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+@media(max-width:900px){.grid3{grid-template-columns:1fr}}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.muted{color:var(--muted)}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr));gap:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.kpi .lbl{font-size:12.5px;color:var(--muted);font-weight:500}
+.kpi .big{font-size:36px;font-weight:700;line-height:1.05;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.brief{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:12px;padding:14px 18px;font-size:15px;box-shadow:var(--shadow)}
+.brief b{font-weight:600}
+
+/* pills & scores */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;white-space:nowrap}
+.p-ready{background:var(--okbg);color:var(--ok)}.p-mon{background:var(--warnbg);color:var(--warn)}.p-fat{background:var(--badbg);color:var(--bad)}.p-none{background:var(--soft);color:var(--muted)}
+.qpill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.qpill i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.score{display:inline-grid;place-items:center;min-width:34px;height:34px;border-radius:8px;font-size:21px;font-weight:700;color:#fff}
+.s-ready{background:var(--ok)}.s-mon{background:var(--warn)}.s-fat{background:var(--bad)}.s-none{background:var(--soft);color:var(--muted);font-size:14px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .score:not(.s-none){color:#0A1220}}
+.segs{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;width:150px}
+.segs i{height:10px;border-radius:2px;background:var(--soft)}
+.segs.s-ready i.on{background:var(--ok)}.segs.s-mon i.on{background:var(--warn)}.segs.s-fat i.on{background:var(--bad)}
+
+/* tables */
+.tablebox{overflow:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{text-align:right;font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--panel);position:sticky;top:0}
+th button{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;padding:9px 10px}
+th[aria-sort=ascending] button::after{content:" ▲"}th[aria-sort=descending] button::after{content:" ▼"}
+th.l,td.l{text-align:left}
+td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr.click{cursor:pointer}tbody tr.click:hover{background:var(--soft)}
+td .pname{font-weight:600}
+.roster{min-width:880px}
+.data-t{min-width:980px}
+
+/* charts */
 .box{position:relative;min-height:240px}
-.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
-.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:5px 9px;font-size:13px;display:none;white-space:nowrap;z-index:3}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.16);padding:6px 10px;font-size:12.5px;display:none;white-space:nowrap;z-index:5}
 .tip .h{color:var(--muted)}
-.tablebox{overflow:auto;max-height:580px}
-table{border-collapse:collapse;width:100%;min-width:960px;font-variant-numeric:tabular-nums}
-th{position:sticky;top:0;background:var(--panel);text-align:right;font-weight:600;font-size:13px;color:var(--muted);padding:0;border-bottom:2px solid var(--line);white-space:nowrap}
-th button{all:unset;cursor:pointer;display:block;width:100%;padding:8px 10px;box-sizing:border-box}
-th[aria-sort=ascending] button::after{content:" ▲"} th[aria-sort=descending] button::after{content:" ▼"}
-th:first-child,td:first-child{text-align:left}
-td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
-.pill{display:inline-block;font-size:12.5px;font-weight:600;padding:1px 9px;border:1px solid currentColor;border-radius:999px}
-.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:10px}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.sessions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.chip{border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:13.5px;display:flex;gap:8px;align-items:center}
-.chip button{padding:1px 8px;font-size:12px;color:var(--muted)}
-.empty{padding:50px 16px;text-align:center;color:var(--muted)}
-.defs{display:grid;gap:6px;font-size:13.5px;color:var(--muted);max-width:90ch}
-.defs b{color:var(--fg)}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:6px;border-left:4px solid var(--gold);display:none;max-width:92vw;z-index:10}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+/* quadrant cards */
+.qcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.qcard{border:1px solid var(--line);border-top:4px solid var(--qc);border-radius:12px;padding:14px 16px;background:var(--panel);box-shadow:var(--shadow)}
+.qcard h4{margin:0;font-size:16px;font-weight:700;color:var(--qc)}
+.qcard .who{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 8px}
+.qcard .who button{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:2px 10px;font-size:12.5px;cursor:pointer}
+.qcard .who button:hover{border-color:var(--qc)}
+.qcard p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.qcard .fx{font-size:13px;margin-top:8px}
+.qmini{display:grid;gap:8px}
+.qmini .r{display:grid;grid-template-columns:150px 1fr 26px;gap:10px;align-items:center;font-size:13px}
+.qmini .bar{height:10px;border-radius:5px;background:var(--soft);overflow:hidden}
+.qmini .bar span{display:block;height:100%;border-radius:5px}
+
+/* plans */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;padding:7px 12px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--navy);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .seg button[aria-pressed=true]{background:var(--gold);color:var(--navy)}}
+.search{padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-width:200px}
+.plans{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,370px),1fr));gap:16px}
+.plan{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--qc);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);break-inside:avoid}
+.plan .ph{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.plan .pn{font-size:18px;font-weight:700;cursor:pointer}
+.plan .pn:hover{text-decoration:underline}
+.plan .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;align-items:center}
+.plan .focus{margin:12px 0 4px;font-size:13.5px}
+.plan .adj{font-size:12.5px;border-radius:8px;padding:7px 10px;margin:10px 0}
+.adj.p-ready{background:var(--okbg)}.adj.p-mon{background:var(--warnbg)}.adj.p-fat{background:var(--badbg)}.adj.p-none{background:var(--soft)}
+.ex{margin-top:12px}
+.ex h5{margin:0 0 6px;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.ex ul{list-style:none;margin:0;padding:0}
+.ex li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.ex li:last-child{border-bottom:0}
+.ex li b{font-weight:600}
+.ex li .why{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.ex li .rx{color:var(--muted);white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+
+/* readiness */
+.rlist{display:grid;gap:0}
+.rrow{display:grid;grid-template-columns:44px minmax(150px,1.2fr) 160px repeat(3,minmax(80px,.6fr)) minmax(120px,1fr);gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.rrow:hover{background:var(--soft)}
+.rrow.h{cursor:default;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.rrow.h:hover{background:transparent}
+.rrow .v{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:820px){.rrow{grid-template-columns:44px 1fr auto}.rrow .hide-s{display:none}}
+.scale{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.scale span{flex:1;min-width:70px;text-align:center;font-size:12px;padding:6px 4px;border-radius:6px;font-weight:600}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(4,15,35,.45);z-index:40;display:none}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--bg);z-index:41;transform:translateX(100%);transition:transform .22s ease;overflow-y:auto;box-shadow:-10px 0 30px rgba(0,0,0,.2)}
+.drawer.open{transform:none}.scrim.open{display:block}
+.dhead{background:var(--navy);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:sticky;top:0;z-index:2}
+.dhead h3{margin:0;font-size:22px}
+.dhead .x{background:transparent;border:1px solid #2F4A73;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
+.dbody{padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+.dstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dstats div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.dstats .big{font-size:26px;font-weight:700;line-height:1.1}
+.dstats .lbl{font-size:12px;color:var(--muted)}
+
+/* data tab */
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px 16px;text-align:center;color:var(--muted);background:var(--panel)}
+.drop.over,body.dragging .drop{border-color:var(--accent);background:var(--soft);color:var(--fg)}
+.sessions{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;display:flex;gap:8px;align-items:center;background:var(--panel)}
+.chip button{border:1px solid var(--line);background:transparent;border-radius:6px;padding:1px 8px;font-size:12px;color:var(--muted);cursor:pointer}
+.defs{display:grid;gap:8px;font-size:13.5px;color:var(--muted);max-width:95ch}
+.defs b{color:var(--fg);font-weight:600}
+.empty{padding:60px 16px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;border-left:4px solid var(--gold);display:none;max-width:92vw;z-index:60}
+.dropveil{position:fixed;inset:0;background:rgba(4,30,66,.55);z-index:70;display:none;place-items:center;color:#fff;font:700 28px "Barlow Condensed",sans-serif}
+body.dragging .dropveil{display:grid}
 [hidden]{display:none!important}
+
+@media print{
+  header.top,nav.tabs,.toolbar,.noprint,.toast{display:none!important}
+  body{background:#fff}
+  .view{display:none!important}.view.print{display:flex!important}
+  .card,.plan,.kpi{box-shadow:none}
+  .plans{grid-template-columns:1fr 1fr}
+}
 </style>
 </head>
 <body>
-<header><div class="wrap hrow">
-  <div>
-    <h1>ETSU men's basketball · CMJ force plates</h1>
-    <div class="sub" id="subline">Loading tests…</div>
+<header class="top"><div class="wrap brand">
+  <div class="logo">
+    <div class="mark">ETSU</div>
+    <div><h1>Men's Basketball Performance</h1><div class="tag" id="subline">Force plate CMJ monitoring · Loading…</div></div>
   </div>
   <div class="hctl">
     <label for="dateSel">Test date</label>
     <select id="dateSel"></select>
-    <label class="btn btn-gold" for="file" id="addBtn" tabindex="0">Add weekly CSV</label>
+    <label class="btn btn-gold" for="file" id="addBtn" tabindex="0">＋ Add weekly CSV</label>
     <input type="file" id="file" accept=".csv,text/csv" multiple>
   </div>
 </div></header>
+<nav class="tabs" aria-label="Sections"><div class="wrap">
+  <a href="#home" data-v="home">Home</a>
+  <a href="#profiles" data-v="profiles">Jumper profiles</a>
+  <a href="#plans" data-v="plans">Exercise plans</a>
+  <a href="#readiness" data-v="readiness">Readiness</a>
+  <a href="#data" data-v="data">Data &amp; uploads</a>
+</div></nav>
 
 <main class="wrap">
-  <div class="drop" id="drop"><b>Drop your ForceDecks CSV export here</b> or use <b>Add weekly CSV</b>. Tests are matched by player and date, so re-uploading a week replaces it instead of doubling it.</div>
+  <div id="empty" class="empty" hidden>No tests loaded yet. Open <a href="#data">Data &amp; uploads</a> and drop in a ForceDecks CMJ export.</div>
 
-  <div id="empty" class="empty" hidden>No tests yet. Drop a ForceDecks CMJ export above to build the dashboard.</div>
+  <!-- HOME -->
+  <section class="view" id="v-home">
+    <div class="brief" id="brief"></div>
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">Team readiness</div><div class="big" id="k-ready"></div><div class="sub" id="k-ready-s"></div></div>
+      <div class="kpi"><div class="lbl">Ready · Monitor · Fatigued</div><div class="big" id="k-bands"></div><div class="sub" id="k-bands-s"></div></div>
+      <div class="kpi"><div class="lbl">Team jump height</div><div class="big" id="k-jh"></div><div class="sub" id="k-jh-s"></div></div>
+      <div class="kpi"><div class="lbl">Team RSI-modified</div><div class="big" id="k-rsi"></div><div class="sub" id="k-rsi-s"></div></div>
+      <div class="kpi"><div class="lbl">Asymmetry flags (&gt;15%)</div><div class="big" id="k-asym"></div><div class="sub" id="k-asym-s"></div></div>
+    </div>
+    <div class="grid3">
+      <div class="card">
+        <h3>Full team</h3>
+        <p class="note">Selected test. Click a player for his full profile.</p>
+        <div class="tablebox"><table class="roster" id="roster"><thead><tr>
+          <th class="l"><button data-k="name">Player</button></th>
+          <th><button data-k="score">Readiness</button></th>
+          <th class="l"><button data-k="qorder">Jumper type</button></th>
+          <th><button data-k="jh">Jump ht (cm)</button></th>
+          <th><button data-k="rsi">RSI-mod</button></th>
+          <th><button data-k="rsi_chg">Δ RSI-mod</button></th>
+          <th><button data-k="max_asym">Max asym</button></th>
+          <th class="l"><button data-k="flagtxt">Flags</button></th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card"><h3>Jumper types</h3><p class="note">Where the roster sits this test.</p><div class="qmini" id="qmini"></div><a href="#profiles" class="muted" style="display:inline-block;margin-top:12px;font-size:13px">Open the quadrant →</a></div>
+        <div class="card"><h3>Needs attention</h3><p class="note">Lowest readiness and biggest flags.</p><div id="attention" class="defs"></div></div>
+      </div>
+    </div>
+    <div class="card"><h3>Team trend</h3><p class="note">Team averages by test. A hollow point means most bodyweight readings that day were off, so jump numbers are likely inflated.</p><div class="box" id="trend"></div></div>
+  </section>
 
-  <div id="dash" hidden style="display:flex;flex-direction:column;gap:18px">
-    <div class="take" id="takeaway"></div>
+  <!-- PROFILES -->
+  <section class="view" id="v-profiles">
+    <div class="pagehead"><div><h2>Jumper profiles</h2><p>Each player's jump height (how much output) against RSI-modified (how fast he gets it). The dividing lines are the team averages for the selected test, so types are relative to this roster.</p></div></div>
+    <div class="card"><div class="box" id="quad" style="min-height:460px"></div></div>
+    <div class="qcards" id="qcards"></div>
+  </section>
 
-    <section class="tiles">
-      <div class="tile"><div class="lbl">Team jump height (Imp-Mom)</div><div class="big" id="t-jh"></div><div class="chg" id="t-jh-c"></div></div>
-      <div class="tile"><div class="lbl">Team RSI-modified</div><div class="big" id="t-rsi"></div><div class="chg" id="t-rsi-c"></div></div>
-      <div class="tile"><div class="lbl">Team countermovement depth</div><div class="big" id="t-cmd"></div><div class="chg" id="t-cmd-c"></div></div>
-      <div class="tile"><div class="lbl">Players tested</div><div class="big" id="t-n"></div><div class="chg" id="t-bw"></div></div>
-      <div class="tile"><div class="lbl">Asymmetry over 15%</div><div class="big" id="t-asym"></div><div class="chg">any of decel, concentric or landing</div></div>
-    </section>
+  <!-- PLANS -->
+  <section class="view" id="v-plans">
+    <div class="pagehead"><div><h2>Exercise plans</h2><p>Starting-point exercise selection for each player, built from his jumper type, left–right asymmetry and countermovement speed on the selected test. Adjust for training history and any injury status.</p></div>
+      <button class="btn noprint" id="printBtn">Print plans</button></div>
+    <div class="toolbar">
+      <div class="seg" id="planFilter" role="group" aria-label="Filter by type"></div>
+      <input class="search" id="planSearch" type="search" placeholder="Search player" aria-label="Search player">
+    </div>
+    <div class="plans" id="plans"></div>
+  </section>
 
-    <section class="card" id="roster">
-      <h2>Player results</h2>
-      <p class="note">Changes compare each player to his most recent earlier test with a normal bodyweight reading. Click a row to see that player's trend.</p>
-      <div class="tablebox"><table id="ptable"><thead><tr>
-        <th><button data-k="name">Player</button></th>
-        <th><button data-k="status_rank">Status</button></th>
-        <th><button data-k="bw">BW (kg)</button></th>
-        <th><button data-k="jh">Jump ht (cm)</button></th>
-        <th><button data-k="jh_chg">Δ jump ht</button></th>
-        <th><button data-k="rsi">RSI-mod</button></th>
-        <th><button data-k="rsi_chg">Δ RSI-mod</button></th>
-        <th><button data-k="depth">Depth (cm)</button></th>
-        <th><button data-k="epv">Ecc peak vel (m/s)</button></th>
-        <th><button data-k="decel_abs">Decel asym</button></th>
-        <th><button data-k="conc_abs">Conc asym</button></th>
-        <th><button data-k="land_abs">Landing asym</button></th>
-        <th><button data-k="reps">Reps</button></th>
-      </tr></thead><tbody></tbody></table></div>
-      <div class="legend"><span><span class="ok">Ready</span> no flags</span><span><span class="warn">Monitor</span> asymmetry 10–15% or RSI-mod down 5–10%</span><span><span class="bad">Check</span> asymmetry over 15% or RSI-mod down 10%+</span><span><span class="warn">⚠</span> bodyweight off by 4 kg+ from his other tests</span></div>
-    </section>
+  <!-- READINESS -->
+  <section class="view" id="v-readiness">
+    <div class="pagehead"><div><h2>Readiness</h2><p>A 1–10 score from each player's jump performance compared with his own baseline (the average of up to four earlier clean tests). It weights RSI-modified 70% and jump height 30%.</p></div></div>
+    <div class="card">
+      <h3>Scale</h3>
+      <div class="scale"><span style="background:var(--badbg);color:var(--bad)">1–4 Fatigued · cut plyo volume</span><span style="background:var(--warnbg);color:var(--warn)">5–7 Monitor · normal session, cap intensity</span><span style="background:var(--okbg);color:var(--ok)">8–10 Ready · full session</span></div>
+      <p class="note" style="margin-top:10px">7 means jumping at his normal level. Each point is about a 2.5% change in combined jump performance. No score is given on a player's first test or on a test where his bodyweight reading was off.</p>
+    </div>
+    <div class="grid3">
+      <div class="card"><h3>Player readiness</h3><p class="note">Sorted lowest first. Click a player for his trend.</p><div class="rlist" id="rlist"></div></div>
+      <div class="card"><h3>Score distribution</h3><p class="note">How many players at each score this test.</p><div class="box" id="rdist"></div></div>
+    </div>
+    <div class="card"><h3>Left–right asymmetry</h3><p class="note">Not part of the score, but worth checking alongside it. Left of center favors the left leg. Shaded bands mark 10% and 15%.</p><div class="box" id="asym"></div><div class="legend" id="asymLegend"></div></div>
+  </section>
 
-    <section class="grid">
-      <div class="card"><h2>Team averages by week</h2><p class="note">A hollow point means most bodyweight readings that day were off, so jump numbers are likely inflated.</p><div class="box" id="trend"></div></div>
-      <div class="card"><h2>Output vs explosiveness</h2><p class="note">Jump height against RSI-mod on the selected test. Dashed lines are team averages. Click a dot to open that player.</p><div class="box" id="quad"></div></div>
-    </section>
-
-    <section class="card">
-      <h2>Left–right asymmetry</h2>
-      <p class="note">Selected test. Left of center favors the left leg, right of center the right leg. Shaded bands mark 10% and 15%.</p>
-      <div class="box" id="asym"></div>
-      <div class="legend" id="asymLegend"></div>
-    </section>
-
-    <section class="card" id="player">
-      <div class="row"><h2>Player trend</h2><select id="playerSel" aria-label="Player"></select></div>
-      <p class="note">Jump height and RSI-mod for one player across every test, with the team average in gray.</p>
-      <div class="grid"><div class="box" id="pjh"></div><div class="box" id="prsi"></div></div>
-    </section>
-
-    <section class="card">
-      <h2>Saved tests</h2>
+  <!-- DATA -->
+  <section class="view" id="v-data">
+    <div class="pagehead"><div><h2>Data &amp; uploads</h2><p>Every test the dashboard is using, and how to add new weeks.</p></div></div>
+    <div class="drop" id="drop"><b>Drop a ForceDecks CSV here</b> (or anywhere on the page), or use <b>＋ Add weekly CSV</b>. Tests are matched by player and date, so re-uploading a week replaces it.</div>
+    <div class="card">
+      <h3>Saved tests</h3>
       <p class="note" id="storeNote"></p>
       <div class="sessions" id="sessions"></div>
-      <div class="row" style="margin-top:14px">
-        <button id="exportBtn">Download all tests (CSV)</button>
-        <button id="clearBtn">Clear tests added in this browser</button>
+      <div class="toolbar" style="margin-top:14px"><button class="btn" id="exportBtn">Download all tests (CSV)</button><button class="btn" id="clearBtn">Clear tests added in this browser</button></div>
+    </div>
+    <div class="card">
+      <h3>All results for the selected test</h3>
+      <div class="tablebox" style="max-height:560px"><table class="data-t" id="dtable"><thead><tr>
+        <th class="l"><button data-k="name">Player</button></th><th><button data-k="bw">BW (kg)</button></th><th><button data-k="reps">Reps</button></th>
+        <th><button data-k="jh">Jump ht (cm)</button></th><th><button data-k="jh_chg">Δ jump</button></th><th><button data-k="rsi">RSI-mod</button></th><th><button data-k="rsi_chg">Δ RSI</button></th>
+        <th><button data-k="depth">Depth (cm)</button></th><th><button data-k="epv">Ecc vel (m/s)</button></th>
+        <th><button data-k="decel_abs">Decel asym</button></th><th><button data-k="conc_abs">Conc asym</button></th><th><button data-k="land_abs">Landing asym</button></th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h3>Adding a week so everyone sees it</h3>
+      <div class="defs" style="margin-top:8px">
+        <div>1. On github.com, open the <b>ETSU-MBB-Dashboard</b> repository and go into the <b>data</b> folder.</div>
+        <div>2. Click <b>Add file → Upload files</b>, drop in the ForceDecks CSV, and click <b>Commit changes</b>.</div>
+        <div>3. Wait about a minute and refresh this page. Dropping a file straight onto the page only saves it in your browser.</div>
       </div>
-    </section>
-
-    <section class="card">
-      <h2>What the numbers mean</h2>
+    </div>
+    <div class="card">
+      <h3>What the numbers mean</h3>
       <div class="defs" style="margin-top:8px">
         <div><b>Jump height (Imp-Mom)</b> is height from takeoff velocity, worked out from the force trace and bodyweight. A bodyweight reading that's too low makes it read too high.</div>
-        <div><b>RSI-modified</b> is jump height divided by time to takeoff — how much jump a player gets per second of effort. It's the main readiness signal here.</div>
-        <div><b>Countermovement depth</b> is how far the hips drop before jumping. A shallower dip usually trades some height for a faster jump.</div>
-        <div><b>Asymmetry</b> is the percent difference between legs and the side that's higher. Decel is braking on the way down, concentric is the push up, landing is peak force coming back down.</div>
+        <div><b>RSI-modified</b> is jump height divided by time to takeoff — how much jump a player gets per second of effort.</div>
+        <div><b>Countermovement depth</b> is how far the hips drop. <b>Eccentric peak velocity</b> is how fast he drops into it.</div>
+        <div><b>Asymmetry</b> is the percent difference between legs and the side that's higher: decel is braking on the way down, concentric is the push up, landing is peak force coming back down.</div>
+        <div><b>Bodyweight check:</b> a test is flagged when his bodyweight is 4+ kg off the median of all his tests. Flagged tests aren't used as a comparison point.</div>
       </div>
-    </section>
-  </div>
+    </div>
+  </section>
 </main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Player profile" aria-hidden="true">
+  <div class="dhead"><div><h3 id="dName"></h3><div class="tag" id="dSub"></div></div><button class="x" id="dClose" aria-label="Close">✕</button></div>
+  <div class="dbody" id="dBody"></div>
+</aside>
 <div class="toast" id="toast" role="status"></div>
+<div class="dropveil">Drop the ForceDecks CSV to add it</div>
 
 <script>
 (function () {
@@ -182,9 +341,11 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
   const dShort = (s) => d3.utcFormat("%b %-d")(new Date(s + "T00:00:00Z"));
   const dLong = (s) => d3.utcFormat("%b %-d, %Y")(new Date(s + "T00:00:00Z"));
   const sgn = (v, f) => (v > 0 ? "+" : v < 0 ? "−" : "±") + f(Math.abs(v));
+  const esc = (x) => String(x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => (t.style.display = "none"), 4500); }
 
-  // ---------- CSV parsing ----------
+  // ================= parsing =================
   function parseCSV(text) {
     text = text.replace(/^﻿/, "");
     const rows = []; let row = [], f = "", q = false;
@@ -206,26 +367,16 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
     if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/))) { const y = m[3].length === 2 ? "20" + m[3] : m[3]; return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`; }
     return null;
   }
-  // "19 R" -> -19, "10 L" -> 10 (positive = left)
-  function asym(s) {
-    s = String(s || "").trim(); if (!s) return null;
-    const m = s.match(/(-?[\d.]+)\s*([LR])?/i); if (!m) return null;
-    const v = parseFloat(m[1]); if (!isFinite(v)) return null;
-    return m[2] && m[2].toUpperCase() === "R" ? -Math.abs(v) : Math.abs(v);
-  }
-  const numOrNull = (s) => { const v = parseFloat(String(s || "").replace(/,/g, "")); return isFinite(v) ? v : null; };
-
+  function asym(s) { s = String(s || "").trim(); if (!s) return null; const m = s.match(/(-?[\d.]+)\s*([LR])?/i); if (!m) return null; const v = parseFloat(m[1]); if (!isFinite(v)) return null; return m[2] && m[2].toUpperCase() === "R" ? -Math.abs(v) : Math.abs(v); }
+  const numOrNull = (s) => { const v = parseFloat(String(s ?? "").replace(/,/g, "")); return isFinite(v) ? v : null; };
   function parseExport(text) {
     const rows = parseCSV(text); if (rows.length < 2) throw new Error("That file has no rows.");
     const head = rows[0].map(norm);
     const find = (...keys) => head.findIndex((h) => keys.every((k) => h.includes(k)));
     const C = {
-      name: head.findIndex((h) => h === "name" || h === "athlete"),
-      type: find("test type"), date: head.findIndex((h) => h === "date" || h === "test date"),
-      bw: find("bw"), reps: find("reps"),
-      jh: find("jump height", "imp mom"), rsi: find("rsi modified"), epv: find("eccentric peak velocity"),
-      depth: find("countermovement depth"), decel: find("eccentric deceleration impulse", "asym"),
-      conc: find("concentric impulse", "asym"), land: find("peak landing force", "asym")
+      name: head.findIndex((h) => h === "name" || h === "athlete"), type: find("test type"), date: head.findIndex((h) => h === "date" || h === "test date"),
+      bw: find("bw"), reps: find("reps"), jh: find("jump height", "imp mom"), rsi: find("rsi modified"), epv: find("eccentric peak velocity"),
+      depth: find("countermovement depth"), decel: find("eccentric deceleration impulse", "asym"), conc: find("concentric impulse", "asym"), land: find("peak landing force", "asym")
     };
     if (C.bw < 0) C.bw = find("body weight");
     const need = { name: "Name", date: "Date", jh: "Jump Height (Imp-Mom)", rsi: "RSI-modified" };
@@ -233,66 +384,83 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
     if (missing.length) throw new Error("Missing columns: " + missing.join(", ") + ". Use the ForceDecks CMJ export.");
     const out = [];
     rows.slice(1).forEach((r) => {
-      const name = String(r[C.name] || "").replace(/\s+/g, " ").trim(); const date = toISO(r[C.date]);
+      const name = String(r[C.name] || "").replace(/\s+/g, " ").trim(), date = toISO(r[C.date]);
       if (!name || !date) return;
       if (C.type >= 0 && r[C.type] && !/cmj|countermovement/i.test(r[C.type])) return;
       const jh = numOrNull(r[C.jh]), rsi = numOrNull(r[C.rsi]); if (jh == null || rsi == null) return;
-      out.push({
-        name, date, jh, rsi,
-        bw: C.bw >= 0 ? numOrNull(r[C.bw]) : null, reps: C.reps >= 0 ? numOrNull(r[C.reps]) : null,
-        epv: C.epv >= 0 ? numOrNull(r[C.epv]) : null, depth: C.depth >= 0 ? numOrNull(r[C.depth]) : null,
-        decel: C.decel >= 0 ? asym(r[C.decel]) : null, conc: C.conc >= 0 ? asym(r[C.conc]) : null, land: C.land >= 0 ? asym(r[C.land]) : null
-      });
+      const g = (k, fn) => (C[k] >= 0 ? fn(r[C[k]]) : null);
+      out.push({ name, date, jh, rsi, bw: g("bw", numOrNull), reps: g("reps", numOrNull), epv: g("epv", numOrNull), depth: g("depth", numOrNull), decel: g("decel", asym), conc: g("conc", asym), land: g("land", asym) });
     });
     if (!out.length) throw new Error("No CMJ rows with a date and jump height were found.");
     return out;
   }
 
-  // ---------- data store ----------
+  // ================= store =================
   let shared = [], local = [];
   const key = (r) => r.name.toLowerCase() + "|" + r.date;
   function loadLocal() { try { local = JSON.parse(localStorage.getItem(STORE) || "[]"); } catch (e) { local = []; } }
   function saveLocal() { try { localStorage.setItem(STORE, JSON.stringify(local)); return true; } catch (e) { return false; } }
   function merged() { const m = new Map(); shared.forEach((r) => m.set(key(r), r)); local.forEach((r) => m.set(key(r), r)); return [...m.values()]; }
-
   async function loadShared() {
     try {
-      const res = await fetch("data/manifest.json", { cache: "no-store" }); if (!res.ok) return 0;
-      const files = await res.json(); const all = new Map();
-      for (const f of files) {
-        try { const t = await (await fetch("data/" + encodeURIComponent(f), { cache: "no-store" })).text(); parseExport(t).forEach((r) => all.set(key(r), r)); }
-        catch (e) { console.warn("Skipped", f, e); }
-      }
-      shared = [...all.values()]; return files.length;
-    } catch (e) { return 0; }
+      const res = await fetch("data/manifest.json", { cache: "no-store" }); if (!res.ok) return;
+      const files = await res.json(), all = new Map();
+      for (const f of files) { try { const t = await (await fetch("data/" + encodeURIComponent(f), { cache: "no-store" })).text(); parseExport(t).forEach((r) => all.set(key(r), r)); } catch (e) { console.warn("Skipped", f, e); } }
+      shared = [...all.values()];
+    } catch (e) { /* offline or opened as a file */ }
   }
 
-  // ---------- analysis ----------
+  // ================= jumper types =================
+  const Q = {
+    elite: { name: "Explosive Elite", short: "High output, fast", color: "--q-elite", order: 0,
+      desc: "Jumps high and gets there quickly. The most complete jump profile on the roster.",
+      focus: "Maintain strength and elastic qualities, push the speed–strength ceiling, and manage load.",
+      ex: [["Trap bar jump", "4 × 3 @ 20–30% 1RM", "Loaded speed to keep raising the ceiling"], ["Depth jump (12–18 in box)", "3 × 4", "Fast ground contact, max height"], ["Hang power clean", "4 × 3", "Triple-extension power"], ["Back squat", "3 × 4 @ 80–85%", "Hold strength in-season"]] },
+    power: { name: "Power Loader", short: "High output, slow", color: "--q-power", order: 1,
+      desc: "Produces plenty of height but takes a long time to get off the floor. Strong, but not yet elastic.",
+      focus: "Shorten time to takeoff: reactive and elastic work, faster countermovements. Keep strength in place.",
+      ex: [["Pogo hops", "3 × 15 s", "Stiff ankles, quick contacts"], ["Drop jump (low box, react fast)", "4 × 4", "Train the stretch-shortening cycle"], ["Hurdle hops (continuous)", "4 × 5", "Minimize ground time between jumps"], ["Band-assisted CMJ", "4 × 4", "Overspeed takeoff"], ["Trap bar deadlift", "3 × 4 @ 80%", "Maintain the strength base"]] },
+    quick: { name: "Quick Spring", short: "Low output, fast", color: "--q-quick", order: 2,
+      desc: "Gets off the floor quickly but doesn't produce enough force to jump high. Elastic, but under-powered.",
+      focus: "Build force: heavy lower-body strength and loaded jumps. Keep some reactive work so he stays quick.",
+      ex: [["Front or back squat", "4 × 5 @ 78–85%", "Raise max force"], ["Trap bar deadlift", "4 × 4 @ 80–85%", "Hip and leg strength"], ["Loaded jump squat", "4 × 4 @ 20% BW", "Turn strength into jump height"], ["Romanian deadlift", "3 × 6", "Posterior-chain strength"], ["Hip thrust", "3 × 8", "Hip-extension force"]] },
+    found: { name: "Foundation Builder", short: "Low output, slow", color: "--q-found", order: 3,
+      desc: "Below the team average on both height and speed. The biggest return comes from general strength first.",
+      focus: "Build a strength base, teach clean landing positions, and add low-level plyometrics as strength improves.",
+      ex: [["Goblet or front squat", "4 × 6", "Base strength through full range"], ["Rear-foot elevated split squat", "3 × 8 each", "Single-leg strength and balance"], ["Romanian deadlift", "3 × 8", "Posterior chain"], ["Box jump (step down)", "4 × 4", "Intent to jump high, low landing stress"], ["Med ball scoop toss", "3 × 5", "Hip-extension power"]] }
+  };
+  const QKEYS = ["elite", "power", "quick", "found"];
+
+  // ================= analysis =================
+  function band(score) { return score == null ? "none" : score >= 8 ? "ready" : score >= 5 ? "mon" : "fat"; }
+  const BAND = { ready: ["Ready", "p-ready", "s-ready"], mon: ["Monitor", "p-mon", "s-mon"], fat: ["Fatigued", "p-fat", "s-fat"], none: ["No score", "p-none", "s-none"] };
+
   function analyze(tests) {
     const rows = tests.map((r) => ({ ...r }));
     for (const list of d3.group(rows, (r) => r.name).values()) {
       list.sort((a, b) => (a.date < b.date ? -1 : 1));
-      // A test's bodyweight is "off" when it's 4+ kg from the median of all of this player's tests (needs 3+ tests).
-      const bws = list.map((o) => o.bw).filter((v) => v != null);
-      const med = bws.length >= 3 ? d3.median(bws) : null;
-      for (const r of list) r.bw_flag = med != null && r.bw != null && Math.abs(r.bw - med) > 4;
-      for (const r of list) {
-        const prev = list.filter((o) => o.date < r.date && !o.bw_flag).pop();
-        r.ref = prev ? prev.date : null;
-        r.jh_chg = prev ? (r.jh - prev.jh) / prev.jh : null;
-        r.rsi_chg = prev ? (r.rsi - prev.rsi) / prev.rsi : null;
+      const bws = list.map((o) => o.bw).filter((v) => v != null), med = bws.length >= 3 ? d3.median(bws) : null;
+      list.forEach((r) => (r.bw_flag = med != null && r.bw != null && Math.abs(r.bw - med) > 4));
+      list.forEach((r, i) => {
+        const prior = list.slice(0, i).filter((o) => !o.bw_flag).slice(-4);
+        r.base_n = prior.length; r.base_dates = prior.map((o) => o.date);
+        if (prior.length) {
+          const bj = d3.mean(prior, (o) => o.jh), br = d3.mean(prior, (o) => o.rsi);
+          r.jh_chg = (r.jh - bj) / bj; r.rsi_chg = (r.rsi - br) / br;
+          r.perf = 0.7 * r.rsi_chg + 0.3 * r.jh_chg;
+          r.score = r.bw_flag ? null : Math.max(1, Math.min(10, Math.round(7 + r.perf * 40)));
+        } else { r.jh_chg = r.rsi_chg = r.perf = r.score = null; }
+        r.band = band(r.score);
         r.decel_abs = r.decel == null ? null : Math.abs(r.decel);
         r.conc_abs = r.conc == null ? null : Math.abs(r.conc);
         r.land_abs = r.land == null ? null : Math.abs(r.land);
-        r.max_asym = d3.max([r.decel_abs, r.conc_abs, r.land_abs]) ?? 0;
-        const rc = r.rsi_chg;
-        r.status = r.max_asym > 15 || (rc != null && rc <= -0.1) ? "Check" : r.max_asym > 10 || (rc != null && rc <= -0.05) ? "Monitor" : "Ready";
-        r.status_rank = { Check: 0, Monitor: 1, Ready: 2 }[r.status];
-      }
+        r.max_asym = d3.max([r.decel_abs, r.conc_abs, r.land_abs]) ?? null;
+      });
     }
     const team = d3.rollups(rows, (g) => ({
       n: g.length, jh: d3.mean(g, (r) => r.jh), rsi: d3.mean(g, (r) => r.rsi), depth: d3.mean(g, (r) => r.depth),
-      bw_flags: g.filter((r) => r.bw_flag).length, asym_flags: g.filter((r) => r.max_asym > 15).length, check: g.filter((r) => r.status === "Check").length
+      score: d3.mean(g.filter((r) => r.score != null), (r) => r.score), scored: g.filter((r) => r.score != null).length,
+      bw_flags: g.filter((r) => r.bw_flag).length, asym_flags: g.filter((r) => r.max_asym > 15).length
     }), (r) => r.date).map(([date, v]) => ({ date, ...v })).sort((a, b) => (a.date < b.date ? -1 : 1));
     team.forEach((t, i) => {
       t.bw_issue = t.bw_flags / t.n >= 0.5;
@@ -301,228 +469,402 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
       t.jh_chg = prev ? t.jh - prev.jh : null; t.rsi_chg = prev ? t.rsi - prev.rsi : null;
       t.depth_chg = prev && t.depth != null && prev.depth != null ? t.depth - prev.depth : null;
     });
+    // jumper type per test, relative to that test's team averages
+    const tm = new Map(team.map((t) => [t.date, t]));
+    rows.forEach((r) => {
+      const t = tm.get(r.date), hiJ = r.jh >= t.jh, hiR = r.rsi >= t.rsi;
+      r.q = hiJ && hiR ? "elite" : hiJ ? "power" : hiR ? "quick" : "found"; r.qorder = Q[r.q].order;
+      r.flags = flagsFor(r); r.flagtxt = r.flags.map((f) => f.short).join(", ");
+    });
     return { rows, team };
   }
 
-  // ---------- rendering ----------
-  let A = { rows: [], team: [] }, date = null, player = null, sortK = "status_rank", sortDir = 1;
-  const stCls = { Ready: "ok", Monitor: "warn", Check: "bad" };
+  function weaker(v) { return v > 0 ? "right" : "left"; }
+  function flagsFor(r) {
+    const f = [];
+    if (r.bw_flag) f.push({ short: "BW ⚠", level: "warn", text: "Bodyweight reading was off — retest before trusting these numbers." });
+    if (r.decel_abs > 10) f.push({ short: `Braking ${asymTxt(r.decel)}`, level: r.decel_abs > 15 ? "bad" : "warn", text: `Braking asymmetry ${asymTxt(r.decel).replace(" ", "% ")}.` });
+    if (r.conc_abs > 10) f.push({ short: `Push ${asymTxt(r.conc)}`, level: r.conc_abs > 15 ? "bad" : "warn", text: `Push-off asymmetry ${asymTxt(r.conc).replace(" ", "% ")}.` });
+    if (r.land_abs > 15) f.push({ short: `Landing ${asymTxt(r.land)}`, level: r.land_abs > 25 ? "bad" : "warn", text: `Landing asymmetry ${asymTxt(r.land).replace(" ", "% ")}.` });
+    if (r.reps != null && r.reps < 3) f.push({ short: `${r.reps} rep${r.reps > 1 ? "s" : ""}`, level: "warn", text: `Only ${r.reps} good rep${r.reps > 1 ? "s" : ""} — retest next week.` });
+    return f;
+  }
+
+  function planFor(r) {
+    const base = Q[r.q], fix = [];
+    if (r.decel_abs > 10) { const w = weaker(r.decel); fix.push([`Single-leg eccentric split squat (3 s lower)`, `3 × 6 each, +1 set ${w}`, `Braking ${asymTxt(r.decel)}: bias work to the ${w} leg`], [`Single-leg drop to stick`, `3 × 4 each, start ${w}`, `Absorb force evenly on the way down`]); }
+    if (r.conc_abs > 10) { const w = weaker(r.conc); fix.push([`Single-leg box jump`, `3 × 4 each, +1 set ${w}`, `Push-off ${asymTxt(r.conc)}: build ${w}-leg power`], [`B-stance RDL`, `3 × 6 each, lead ${w}`, `Single-leg hip-extension strength`]); }
+    if (r.land_abs > 15) { const heavy = r.land > 0 ? "left" : "right", light = r.land > 0 ? "right" : "left"; fix.push([`Lateral bound to stick`, `3 × 4 each`, `Lands heavier on the ${heavy} — practice even landings`], [`Single-leg landing (low box)`, `3 × 5 each, start ${light}`, `Teach the ${light} leg to take its share`]); }
+    if (r.epv != null && Math.abs(r.epv) < 1.1) fix.push([`Rapid countermovement jump`, `4 × 4`, `Slow descent (${f2(Math.abs(r.epv))} m/s): drop fast and jump straight out of it`], [`Snap-downs`, `3 × 5`, `Quick drop into an athletic stance`]);
+    let adj;
+    if (r.bw_flag) adj = ["p-none", "Bodyweight reading was off on this test, so readiness couldn't be scored. Retest before adjusting the session."];
+    else if (r.band === "fat") adj = ["p-fat", "Fatigued this week: cut jump and plyometric volume by about 40%, keep strength work at RPE 7 or below, and skip the depth jumps."];
+    else if (r.band === "mon") adj = ["p-mon", "Monitor this week: run the normal session but cap intensity around RPE 8 and keep plyometric contacts at the low end."];
+    else if (r.band === "ready") adj = ["p-ready", "Ready this week: run the full session as written."];
+    else adj = ["p-none", "First test on file, so there's no readiness baseline yet. Run the session as written."];
+    return { base, fix, adj };
+  }
+
+  // ================= state & render =================
+  let A = { rows: [], team: [] }, date = null, view = "home", planQ = "all", planQuery = "";
+  const sorts = { roster: ["score", 1], dtable: ["name", 1] };
   const asymTxt = (v) => (v == null ? "—" : Math.abs(v) < 0.05 ? "0" : f1(Math.abs(v)).replace(/\.0$/, "") + (v > 0 ? " L" : " R"));
   const asymCls = (v) => (v == null ? "" : Math.abs(v) > 15 ? "bad" : Math.abs(v) > 10 ? "warn" : "");
+  const curRows = () => A.rows.filter((r) => r.date === date);
+  const curTeam = () => A.team.find((t) => t.date === date);
+  const qPill = (q) => { const s = el("span", "qpill"); const i = el("i"); i.style.background = css(Q[q].color); s.append(i, Q[q].name); return s; };
+  const bandPill = (b) => el("span", "pill " + BAND[b][1], BAND[b][0]);
+  const scoreBox = (r) => { const s = el("span", "score " + BAND[r.band][2], r.score == null ? "—" : String(r.score)); s.title = r.score == null ? (r.bw_flag ? "Bodyweight reading off" : "First test — baseline set") : BAND[r.band][0]; return s; };
+  const segs = (r) => { const s = el("div", "segs " + BAND[r.band][2]); for (let i = 1; i <= 10; i++) s.appendChild(el("i", r.score != null && i <= r.score ? "on" : "")); return s; };
+  const chgCls = (v, lo = -0.1, mid = -0.05) => (v == null ? "" : v <= lo ? "bad" : v <= mid ? "warn" : v >= 0.05 ? "ok" : "");
 
+  function render() {
+    const has = A.rows.length > 0;
+    $("empty").hidden = has || view === "data";
+    const dates = A.team.map((t) => t.date);
+    $("subline").textContent = has ? `Force plate CMJ monitoring · ${dates.length} test${dates.length > 1 ? "s" : ""} · ${new Set(A.rows.map((r) => r.name)).size} players` : "Force plate CMJ monitoring · no tests yet";
+    if (has && !dates.includes(date)) date = dates[dates.length - 1];
+    $("dateSel").replaceChildren(...dates.slice().reverse().map((d) => new Option(dLong(d), d))); if (has) $("dateSel").value = date;
+    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data")));
+    document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.v === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
+    renderData();
+    if (!has) return;
+    if (view === "home") renderHome();
+    if (view === "profiles") renderProfiles();
+    if (view === "plans") renderPlans();
+    if (view === "readiness") renderReadiness();
+  }
+
+  // ---------- HOME ----------
+  function renderHome() {
+    const t = curTeam(), cur = curRows();
+    const scored = cur.filter((r) => r.score != null);
+    const counts = { ready: 0, mon: 0, fat: 0 }; scored.forEach((r) => counts[r.band]++);
+    $("k-ready").textContent = scored.length ? f1(d3.mean(scored, (r) => r.score)) + " / 10" : "—";
+    $("k-ready-s").textContent = scored.length ? `${scored.length} of ${cur.length} players scored` : "No baseline yet";
+    $("k-bands").innerHTML = scored.length ? `<span class="ok">${counts.ready}</span> · <span class="warn">${counts.mon}</span> · <span class="bad">${counts.fat}</span>` : "—";
+    $("k-bands-s").textContent = `${cur.length - scored.length} not scored`;
+    $("k-jh").textContent = f1(t.jh) + " cm"; $("k-rsi").textContent = f2(t.rsi);
+    const sub = (id, v, f, unit) => { const e = $(id); e.className = "sub"; if (v == null) { e.textContent = "First clean test"; return; } e.textContent = `${sgn(v, f)}${unit} vs ${dShort(t.ref)}`; if (Math.abs(v) > 1e-9) e.classList.add(v > 0 ? "ok" : "bad"); };
+    sub("k-jh-s", t.jh_chg, f1, " cm"); sub("k-rsi-s", t.rsi_chg, f2, "");
+    $("k-asym").textContent = `${t.asym_flags} of ${t.n}`; $("k-asym-s").textContent = "decel, push-off or landing";
+
+    // briefing
+    let s = `<b>${dLong(date)}.</b> `;
+    if (t.bw_issue) s += `${t.bw_flags} of ${t.n} bodyweight readings were off from those players' other tests — check the plate zero and weigh-in, and treat this test's jump numbers as inflated. `;
+    else if (t.jh_chg != null) {
+      s += `Team jump height ${sgn(t.jh_chg, f1)} cm and RSI-mod ${sgn(t.rsi_chg, f2)} vs ${dShort(t.ref)}`;
+      s += t.depth_chg != null && t.depth_chg > 2 && t.rsi_chg >= 0 ? " — the team dipped shallower and jumped faster, so lower height looks like jump strategy, not fatigue. " : ". ";
+    } else s += "First test on file — this sets everyone's baseline. ";
+    const fat = scored.filter((r) => r.band === "fat").sort((a, b) => a.score - b.score);
+    if (fat.length) s += `<b>Fatigued:</b> ${fat.map((r) => `${esc(r.name)} (${r.score})`).join(", ")}. `;
+    else if (scored.length) s += "No one scored as fatigued. ";
+    $("brief").innerHTML = s;
+
+    // roster
+    const [k, dir] = sorts.roster;
+    const tb = $("roster").querySelector("tbody"); tb.replaceChildren();
+    markSort("roster");
+    sortRows(cur, k, dir).forEach((r) => {
+      const tr = el("tr", "click"); tr.tabIndex = 0; tr.dataset.name = r.name;
+      const a = el("td", "l"); a.appendChild(el("span", "pname", r.name)); tr.appendChild(a);
+      const b = el("td"); b.appendChild(scoreBox(r)); tr.appendChild(b);
+      const c = el("td", "l"); c.appendChild(qPill(r.q)); tr.appendChild(c);
+      tr.appendChild(el("td", "", f1(r.jh))); tr.appendChild(el("td", "", f2(r.rsi)));
+      tr.appendChild(el("td", chgCls(r.rsi_chg), r.rsi_chg == null ? "—" : pct(r.rsi_chg)));
+      tr.appendChild(el("td", r.max_asym > 15 ? "bad" : r.max_asym > 10 ? "warn" : "", r.max_asym == null ? "—" : f1(r.max_asym).replace(/\.0$/, "") + "%"));
+      const fl = el("td", "l"); fl.style.whiteSpace = "normal"; r.flags.forEach((f, i) => { if (i) fl.append(" "); fl.appendChild(el("span", "pill " + (f.level === "bad" ? "p-fat" : "p-mon"), f.short)); }); if (!r.flags.length) fl.appendChild(el("span", "muted", "—")); tr.appendChild(fl);
+      tb.appendChild(tr);
+    });
+
+    // quadrant mini
+    const qm = $("qmini"); qm.replaceChildren();
+    QKEYS.forEach((q) => {
+      const n = cur.filter((r) => r.q === q).length, row = el("div", "r");
+      const lab = qPill(q); const bar = el("div", "bar"), fill = el("span"); fill.style.width = (100 * n / cur.length) + "%"; fill.style.background = css(Q[q].color); bar.appendChild(fill);
+      row.append(lab, bar, el("span", "num", String(n))); qm.appendChild(row);
+    });
+
+    // attention list
+    const at = $("attention"); at.replaceChildren();
+    const items = [];
+    scored.filter((r) => r.score <= 5).sort((a, b) => a.score - b.score).forEach((r) => items.push([r, `Readiness ${r.score}/10 — RSI-mod ${pct(r.rsi_chg)}, jump ${pct(r.jh_chg)} vs baseline`]));
+    cur.filter((r) => r.max_asym > 20).sort((a, b) => b.max_asym - a.max_asym).forEach((r) => items.push([r, r.flags.filter((f) => f.level === "bad").map((f) => f.text).join(" ") || `Max asymmetry ${f1(r.max_asym)}%`]));
+    cur.filter((r) => r.reps != null && r.reps < 3).forEach((r) => items.push([r, `Only ${r.reps} good rep${r.reps > 1 ? "s" : ""} — retest`]));
+    const byP = new Map(); items.forEach(([r, txt]) => { if (!byP.has(r.name)) byP.set(r.name, []); if (!byP.get(r.name).includes(txt)) byP.get(r.name).push(txt); });
+    byP.forEach((txts, name) => { const d = el("div"); const b = el("b", "", name); b.style.cursor = "pointer"; b.onclick = () => openPlayer(name); d.append(b, " · " + txts.join(" · ")); at.appendChild(d); });
+    if (!items.length) at.appendChild(el("div", "", "Nothing stands out this test."));
+
+    // trend
+    const box = $("trend"); box.replaceChildren();
+    const wrap = el("div"); wrap.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:8px"; box.appendChild(wrap);
+    const dates = A.team.map((x) => x.date), cells = [0, 1, 2].map(() => { const d = el("div"); d.style.position = "relative"; wrap.appendChild(d); return d; });
+    const note = (x) => (x.bw_issue ? `${x.bw_flags} of ${x.n} BW readings off` : "");
+    lineChart(cells[0], dates, [{ name: "Jump height", color: css("--c1"), pts: A.team.map((x) => ({ d: x.date, v: x.jh, hollow: x.bw_issue, note: note(x) })) }], { fmt: f1, title: "Jump height (cm)", sel: date });
+    lineChart(cells[1], dates, [{ name: "RSI-mod", color: css("--c2"), pts: A.team.map((x) => ({ d: x.date, v: x.rsi, hollow: x.bw_issue, note: note(x) })) }], { fmt: f2, title: "RSI-modified", sel: date });
+    const sc = A.team.filter((x) => x.score != null && !isNaN(x.score));
+    if (sc.length) lineChart(cells[2], dates, [{ name: "Readiness", color: css("--c3"), pts: sc.map((x) => ({ d: x.date, v: x.score, note: `${x.scored} scored` })) }], { fmt: f1, title: "Average readiness (1–10)", sel: date, domain: [1, 10] });
+    else { cells[2].appendChild(el("div", "muted", "Readiness trend appears after a second test.")); }
+  }
+
+  // ---------- PROFILES ----------
+  function renderProfiles() {
+    const t = curTeam(), cur = curRows(), box = $("quad"); box.replaceChildren();
+    const W = Math.max(320, box.clientWidth || 900), H = Math.min(560, Math.max(380, W * 0.55)), m = { t: 16, r: 18, b: 44, l: 52 };
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const ex = d3.extent(cur, (r) => r.rsi), ey = d3.extent(cur, (r) => r.jh);
+    const px = Math.max((ex[1] - ex[0]) * 0.12, 0.02), py = Math.max((ey[1] - ey[0]) * 0.12, 1);
+    const x = d3.scaleLinear([Math.min(ex[0], t.rsi) - px, Math.max(ex[1], t.rsi) + px], [m.l, W - m.r]);
+    const y = d3.scaleLinear([Math.min(ey[0], t.jh) - py, Math.max(ey[1], t.jh) + py], [H - m.b, m.t]);
+    const mx = x(t.rsi), my = y(t.jh);
+    const zones = [["elite", mx, m.t, W - m.r - mx, my - m.t], ["power", m.l, m.t, mx - m.l, my - m.t], ["quick", mx, my, W - m.r - mx, H - m.b - my], ["found", m.l, my, mx - m.l, H - m.b - my]];
+    zones.forEach(([q, zx, zy, zw, zh]) => svg.append("rect").attr("x", zx).attr("y", zy).attr("width", Math.max(0, zw)).attr("height", Math.max(0, zh)).attr("fill", css(Q[q].color)).attr("opacity", 0.07));
+    const labels = { elite: [W - m.r - 10, m.t + 20, "end"], power: [m.l + 10, m.t + 20, "start"], quick: [W - m.r - 10, H - m.b - 26, "end"], found: [m.l + 10, H - m.b - 26, "start"] };
+    QKEYS.forEach((q) => { const [lx, ly, an] = labels[q]; svg.append("text").attr("x", lx).attr("y", ly).attr("text-anchor", an).attr("fill", css(Q[q].color)).style("font", "700 15px 'Barlow Condensed',sans-serif").style("text-transform", "uppercase").style("letter-spacing", ".6px").text(Q[q].name); svg.append("text").attr("x", lx).attr("y", ly + 15).attr("text-anchor", an).attr("fill", css("--muted")).style("font-size", "11.5px").text(Q[q].short); });
+    const gx = svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat(f2)).call(axisStyle);
+    const gy = svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(6)).call(axisStyle);
+    svg.append("text").attr("x", (m.l + W - m.r) / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "12px").text("RSI-modified (m/s) — faster →");
+    svg.append("text").attr("transform", `translate(14,${(m.t + H - m.b) / 2}) rotate(-90)`).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "12px").text("Jump height (cm) — higher →");
+    svg.append("line").attr("x1", mx).attr("x2", mx).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", css("--muted")).attr("stroke-dasharray", "5 4");
+    svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", my).attr("y2", my).attr("stroke", css("--muted")).attr("stroke-dasharray", "5 4");
+    svg.append("text").attr("x", mx + 4).attr("y", H - m.b - 6).attr("fill", css("--muted")).style("font-size", "11px").text(`Team ${f2(t.rsi)}`);
+    svg.append("text").attr("x", W - m.r - 4).attr("y", my - 5).attr("text-anchor", "end").attr("fill", css("--muted")).style("font-size", "11px").text(`Team ${f1(t.jh)} cm`);
+    const tip = tipFor(box);
+    // place labels avoiding overlap (simple vertical nudge)
+    const pts = cur.map((r) => ({ r, cx: x(r.rsi), cy: y(r.jh) })).sort((a, b) => a.cy - b.cy);
+    const placed = [];
+    pts.forEach((p) => { const right = p.cx < W - 120; p.lx = p.cx + (right ? 10 : -10); p.anchor = right ? "start" : "end"; p.ly = p.cy + 4; let tries = 0; while (placed.some((o) => Math.abs(o.ly - p.ly) < 13 && Math.abs(o.lx - p.lx) < 90 && o.anchor === p.anchor) && tries++ < 8) p.ly += 13; placed.push(p); });
+    const g = svg.selectAll(null).data(pts).join("g").style("cursor", "pointer").on("click", (ev, p) => openPlayer(p.r.name));
+    g.append("circle").attr("cx", (p) => p.cx).attr("cy", (p) => p.cy).attr("r", 7).attr("fill", (p) => css(Q[p.r.q].color)).attr("stroke", css("--panel")).attr("stroke-width", 2)
+      .on("mousemove", (ev, p) => tip.show(ev, [p.r.name, `${Q[p.r.q].name}`, `Jump ${f1(p.r.jh)} cm · RSI-mod ${f2(p.r.rsi)}`, p.r.score != null ? `Readiness ${p.r.score}/10` : ""])).on("mouseleave", tip.hide);
+    g.append("text").attr("x", (p) => p.lx).attr("y", (p) => p.ly).attr("text-anchor", (p) => p.anchor).attr("fill", css("--fg")).style("font-size", "12px").style("font-weight", 600).text((p) => p.r.name);
+
+    const qc = $("qcards"); qc.replaceChildren();
+    QKEYS.forEach((q) => {
+      const c = el("div", "qcard"); c.style.setProperty("--qc", css(Q[q].color));
+      c.appendChild(el("h4", "", Q[q].name)); c.appendChild(el("div", "muted", Q[q].short));
+      const who = el("div", "who"); const ps = cur.filter((r) => r.q === q).sort((a, b) => b.jh - a.jh);
+      ps.forEach((r) => { const b = el("button", "", r.name); b.onclick = () => openPlayer(r.name); who.appendChild(b); });
+      if (!ps.length) who.appendChild(el("span", "muted", "No players this test"));
+      c.appendChild(who); c.appendChild(el("p", "", Q[q].desc));
+      const fx = el("div", "fx"); fx.appendChild(el("b", "", "Training focus: ")); fx.append(Q[q].focus); c.appendChild(fx);
+      qc.appendChild(c);
+    });
+  }
+
+  // ---------- PLANS ----------
+  function renderPlans() {
+    const cur = curRows();
+    const pf = $("planFilter"); pf.replaceChildren();
+    [["all", "All"], ...QKEYS.map((q) => [q, Q[q].name])].forEach(([k, label]) => { const b = el("button", "", label + (k === "all" ? ` (${cur.length})` : ` (${cur.filter((r) => r.q === k).length})`)); b.setAttribute("aria-pressed", String(planQ === k)); b.onclick = () => { planQ = k; render(); }; pf.appendChild(b); });
+    const box = $("plans"); box.replaceChildren();
+    const list = cur.filter((r) => (planQ === "all" || r.q === planQ) && r.name.toLowerCase().includes(planQuery.toLowerCase())).sort((a, b) => a.qorder - b.qorder || a.name.localeCompare(b.name));
+    if (!list.length) box.appendChild(el("div", "muted", "No players match."));
+    list.forEach((r) => {
+      const { base, fix, adj } = planFor(r);
+      const c = el("article", "plan"); c.style.setProperty("--qc", css(base.color)); c.id = "plan-" + r.name.replace(/\W+/g, "-");
+      const h = el("div", "ph"); const left = el("div"); const nm = el("div", "pn", r.name); nm.onclick = () => openPlayer(r.name); left.appendChild(nm);
+      const meta = el("div", "meta"); meta.appendChild(qPill(r.q)); meta.appendChild(bandPill(r.band)); left.appendChild(meta);
+      h.append(left, scoreBox(r)); c.appendChild(h);
+      c.appendChild(el("div", "focus", base.focus));
+      const a = el("div", "adj " + adj[0], adj[1]); c.appendChild(a);
+      const sec = (title, items) => { const s = el("div", "ex"); s.appendChild(el("h5", "", title)); const ul = el("ul"); items.forEach(([n, rx, why]) => { const li = el("li"); const l = el("div"); l.appendChild(el("b", "", n)); l.appendChild(el("span", "why", why)); li.append(l, el("span", "rx", rx)); ul.appendChild(li); }); s.appendChild(ul); c.appendChild(s); };
+      sec(`Primary — ${base.name}`, base.ex);
+      if (fix.length) sec("Corrective — from his test", fix);
+      else { const s = el("div", "ex"); s.appendChild(el("h5", "", "Corrective — from his test")); s.appendChild(el("div", "muted", "No asymmetry or countermovement-speed issues above the thresholds.")); c.appendChild(s); }
+      const notes = r.flags.filter((f) => f.short.startsWith("BW") || /rep/.test(f.short)); if (notes.length) c.appendChild(el("div", "muted", notes.map((f) => f.text).join(" "))).style.cssText = "font-size:12.5px;margin-top:10px";
+      box.appendChild(c);
+    });
+  }
+
+  // ---------- READINESS ----------
+  function renderReadiness() {
+    const cur = curRows(), rl = $("rlist"); rl.replaceChildren();
+    const hd = el("div", "rrow h"); ["", "Player", "Score", "RSI-mod vs base", "Jump vs base", "Baseline", "Trend"].forEach((x, i) => hd.appendChild(el("div", (i >= 3 ? "v " : "") + (i >= 3 ? "hide-s" : ""), x))); hd.children[2].className = ""; rl.appendChild(hd);
+    const list = cur.slice().sort((a, b) => (a.score ?? 99) - (b.score ?? 99) || a.name.localeCompare(b.name));
+    list.forEach((r) => {
+      const row = el("div", "rrow"); row.tabIndex = 0; row.onclick = () => openPlayer(r.name); row.onkeydown = (e) => { if (e.key === "Enter") openPlayer(r.name); };
+      row.appendChild(scoreBox(r));
+      const nm = el("div"); nm.appendChild(el("div", "pname", r.name)); const pm = el("div"); pm.style.marginTop = "2px"; pm.appendChild(bandPill(r.band)); nm.appendChild(pm); row.appendChild(nm);
+      row.appendChild(segs(r));
+      row.appendChild(el("div", "v hide-s " + chgCls(r.rsi_chg), r.rsi_chg == null ? "—" : pct(r.rsi_chg)));
+      row.appendChild(el("div", "v hide-s " + chgCls(r.jh_chg), r.jh_chg == null ? "—" : pct(r.jh_chg)));
+      row.appendChild(el("div", "v hide-s muted", r.bw_flag ? "BW off" : r.base_n ? r.base_dates.map(dShort).join(", ") : "First test"));
+      const sp = el("div", "hide-s"); sp.style.position = "relative"; row.appendChild(sp); rl.appendChild(row);
+      const hist = A.rows.filter((o) => o.name === r.name && o.score != null && o.date <= date).sort((a, b) => (a.date < b.date ? -1 : 1));
+      spark(sp, hist.map((o) => o.score), [1, 10]);
+    });
+    // distribution
+    const box = $("rdist"); box.replaceChildren();
+    const W = Math.max(260, box.clientWidth || 320), H = 240, m = { t: 14, r: 8, b: 28, l: 28 };
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const counts = d3.range(1, 11).map((s) => ({ s, n: cur.filter((r) => r.score === s).length }));
+    const x = d3.scaleBand(counts.map((c) => c.s), [m.l, W - m.r]).padding(0.25), y = d3.scaleLinear([0, Math.max(3, d3.max(counts, (c) => c.n))], [H - m.b, m.t]).nice();
+    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
+    const ya = svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(Math.min(5, y.domain()[1])).tickFormat(d3.format("d")).tickSize(-(W - m.l - m.r))).call(axisStyle); ya.select(".domain").remove(); ya.selectAll("line").attr("opacity", 0.6);
+    const tip = tipFor(box);
+    svg.selectAll(null).data(counts).join("rect").attr("x", (c) => x(c.s)).attr("width", x.bandwidth()).attr("y", (c) => y(c.n)).attr("height", (c) => y(0) - y(c.n)).attr("rx", 4)
+      .attr("fill", (c) => css(c.s >= 8 ? "--ok" : c.s >= 5 ? "--warn" : "--bad"))
+      .on("mousemove", (ev, c) => tip.show(ev, [`Score ${c.s}`, cur.filter((r) => r.score === c.s).map((r) => r.name).join(", ") || "No players"])).on("mouseleave", tip.hide);
+    const ns = cur.filter((r) => r.score == null).length;
+    if (ns) { const n = el("div", "muted", `${ns} not scored (first test or bodyweight off).`); n.style.fontSize = "12.5px"; box.appendChild(n); }
+    renderAsym(cur);
+  }
+
+  function renderAsym(cur) {
+    const box = $("asym"); box.replaceChildren();
+    const list = cur.filter((r) => r.max_asym != null).sort((a, b) => b.max_asym - a.max_asym);
+    if (!list.length) { box.appendChild(el("div", "muted", "This export has no asymmetry columns.")); return; }
+    const W = Math.max(320, box.clientWidth || 900), rowH = 26, m = { t: 26, r: 16, b: 10, l: 0 };
+    const svg = d3.select(box).append("svg").attr("width", "100%");
+    const lw = d3.max(list, (r) => { const tx = svg.append("text").style("font-size", "12px").text(r.name); const w = tx.node().getComputedTextLength(); tx.remove(); return w; }) || 90;
+    m.l = Math.min(lw + 14, W * 0.4);
+    const H = m.t + list.length * rowH + m.b; svg.attr("viewBox", `0 0 ${W} ${H}`); box.style.minHeight = H + "px";
+    const lim = Math.max(25, Math.ceil(d3.max(list, (r) => r.max_asym) / 5) * 5 + 5), x = d3.scaleLinear([-lim, lim], [m.l, W - m.r]);
+    svg.append("rect").attr("x", x(-15)).attr("width", x(15) - x(-15)).attr("y", m.t - 4).attr("height", H - m.t - m.b + 4).attr("fill", css("--warn")).attr("opacity", 0.08);
+    svg.append("rect").attr("x", x(-10)).attr("width", x(10) - x(-10)).attr("y", m.t - 4).attr("height", H - m.t - m.b + 4).attr("fill", css("--ok")).attr("opacity", 0.09);
+    [-15, -10, 0, 10, 15].forEach((v) => svg.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t - 4).attr("y2", H - m.b).attr("stroke", css(v === 0 ? "--muted" : "--line")));
+    [-(lim - 5), -15, 0, 15, lim - 5].forEach((v) => svg.append("text").attr("x", x(v)).attr("y", 12).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text(v === 0 ? "0" : Math.abs(v) + "% " + (v < 0 ? "L" : "R")));
+    const metrics = [["decel", "Braking (decel impulse)", css("--c1")], ["conc", "Push-off (concentric impulse)", css("--c2")], ["land", "Landing (peak force)", css("--c4")]], tip = tipFor(box);
+    list.forEach((r, i) => {
+      const cy = m.t + i * rowH + rowH / 2;
+      svg.append("text").attr("x", m.l - 10).attr("y", cy + 4).attr("text-anchor", "end").attr("fill", css("--fg")).style("font-size", "12px").style("cursor", "pointer").text(r.name).on("click", () => openPlayer(r.name));
+      svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", cy).attr("y2", cy).attr("stroke", css("--line")).attr("opacity", 0.6);
+      metrics.forEach(([k, label, c]) => { const v = r[k]; if (v == null) return; svg.append("circle").attr("cx", x(Math.max(-lim, Math.min(lim, -v)))).attr("cy", cy).attr("r", 5.5).attr("fill", c).attr("stroke", css("--panel")).attr("stroke-width", 1.5).on("mousemove", (ev) => tip.show(ev, [r.name, `${label}: ${asymTxt(v).replace(" ", "% ")}`])).on("mouseleave", tip.hide); });
+    });
+    $("asymLegend").replaceChildren(...metrics.map(([, label, c]) => { const s = el("span"); const i = el("i"); i.style.background = c; s.append(i, label); return s; }));
+  }
+
+  // ---------- DATA ----------
+  function renderData() {
+    const all = merged(), byDate = d3.rollups(all, (g) => g.length, (r) => r.date).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+    const localDates = new Set(local.map((r) => r.date)), sharedDates = new Set(shared.map((r) => r.date));
+    $("storeNote").textContent = `Tests from the site's data folder show for everyone. Tests dropped onto the page are saved in this browser only${localDates.size ? ` (${localDates.size} date${localDates.size > 1 ? "s" : ""} so far)` : ""}.`;
+    $("sessions").replaceChildren(...byDate.map(([d, n]) => {
+      const c = el("div", "chip"); c.appendChild(el("span", "", `${dLong(d)} · ${n} players · ${localDates.has(d) ? "this browser" : "shared"}`));
+      if (localDates.has(d)) { const b = el("button", "", "Remove"); b.onclick = () => { if (!confirm(`Remove ${dLong(d)} from this browser?${sharedDates.has(d) ? " The shared copy will still show." : ""}`)) return; local = local.filter((r) => r.date !== d); saveLocal(); refresh(); }; c.appendChild(b); }
+      return c;
+    }));
+    if (!byDate.length) $("sessions").appendChild(el("span", "muted", "None yet."));
+    const tb = $("dtable").querySelector("tbody"); tb.replaceChildren(); if (!date) return;
+    markSort("dtable"); const [k, dir] = sorts.dtable;
+    sortRows(curRows(), k, dir).forEach((r) => {
+      const tr = el("tr", "click"); tr.dataset.name = r.name; tr.tabIndex = 0;
+      const td = (t, c) => tr.appendChild(el("td", c || "", t));
+      const a = el("td", "l"); a.appendChild(el("span", "pname", r.name)); tr.appendChild(a);
+      td(r.bw == null ? "—" : f1(r.bw) + (r.bw_flag ? " ⚠" : ""), r.bw_flag ? "warn" : ""); td(r.reps == null ? "—" : String(r.reps), r.reps < 3 ? "warn" : "");
+      td(f1(r.jh)); td(r.jh_chg == null ? "—" : pct(r.jh_chg), chgCls(r.jh_chg)); td(f2(r.rsi)); td(r.rsi_chg == null ? "—" : pct(r.rsi_chg), chgCls(r.rsi_chg));
+      td(r.depth == null ? "—" : f1(Math.abs(r.depth))); td(r.epv == null ? "—" : f2(Math.abs(r.epv)));
+      td(asymTxt(r.decel), asymCls(r.decel)); td(asymTxt(r.conc), asymCls(r.conc)); td(asymTxt(r.land), asymCls(r.land));
+      tb.appendChild(tr);
+    });
+  }
+
+  // ---------- drawer ----------
+  function openPlayer(name) {
+    const r = A.rows.find((o) => o.name === name && o.date === date) || A.rows.filter((o) => o.name === name).pop(); if (!r) return;
+    $("dName").textContent = name;
+    $("dSub").textContent = `${Q[r.q].name} · ${dLong(r.date)}${r.bw != null ? ` · ${f1(r.bw)} kg` : ""}`;
+    const b = $("dBody"); b.replaceChildren();
+    const stats = el("div", "dstats");
+    const stat = (big, lbl, cls) => { const d = el("div"); d.appendChild(el("div", "big " + (cls || ""), big)); d.appendChild(el("div", "lbl", lbl)); stats.appendChild(d); };
+    stat(r.score == null ? "—" : r.score + "/10", "Readiness · " + BAND[r.band][0], { ready: "ok", mon: "warn", fat: "bad" }[r.band]);
+    stat(f1(r.jh) + " cm", "Jump height" + (r.jh_chg == null ? "" : ` · ${pct(r.jh_chg)}`));
+    stat(f2(r.rsi), "RSI-mod" + (r.rsi_chg == null ? "" : ` · ${pct(r.rsi_chg)}`));
+    b.appendChild(stats);
+    if (r.flags.length) { const fc = el("div", "card"); fc.appendChild(el("h3", "", "Flags")); const d = el("div", "defs"); d.style.marginTop = "6px"; r.flags.forEach((f) => d.appendChild(el("div", f.level, f.text))); fc.appendChild(d); b.appendChild(fc); }
+    const hist = A.rows.filter((o) => o.name === name).sort((a, c) => (a.date < c.date ? -1 : 1)), dates = A.team.map((t) => t.date);
+    const mk = (title) => { const c = el("div", "card"); c.appendChild(el("h3", "", title)); const bx = el("div", "box"); c.appendChild(bx); b.appendChild(c); return bx; };
+    const muted = css("--chart-muted"), n = (o) => (o.bw_flag ? "BW reading off" : "");
+    const b1 = mk("Jump height vs team");
+    lineChart(b1, dates, [{ name: "Team", color: muted, pts: A.team.map((t) => ({ d: t.date, v: t.jh, hollow: t.bw_issue })) }, { name, color: css("--c1"), pts: hist.map((o) => ({ d: o.date, v: o.jh, hollow: o.bw_flag, note: n(o) })) }], { fmt: f1, title: "cm", sel: date });
+    const b2 = mk("RSI-modified vs team");
+    lineChart(b2, dates, [{ name: "Team", color: muted, pts: A.team.map((t) => ({ d: t.date, v: t.rsi, hollow: t.bw_issue })) }, { name, color: css("--c2"), pts: hist.map((o) => ({ d: o.date, v: o.rsi, hollow: o.bw_flag, note: n(o) })) }], { fmt: f2, title: "m/s", sel: date });
+    const hs = hist.filter((o) => o.score != null);
+    if (hs.length) { const b3 = mk("Readiness"); lineChart(b3, dates, [{ name: "Readiness", color: css("--c3"), pts: hs.map((o) => ({ d: o.date, v: o.score })) }], { fmt: d3.format("d"), title: "1–10", sel: date, domain: [1, 10] }); }
+    const pl = el("button", "btn", "Open his exercise plan →"); pl.onclick = () => { closeDrawer(); planQ = "all"; planQuery = ""; $("planSearch").value = ""; location.hash = "plans"; setTimeout(() => { const t = document.getElementById("plan-" + name.replace(/\W+/g, "-")); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
+    b.appendChild(pl);
+    $("drawer").classList.add("open"); $("scrim").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("dClose").focus();
+  }
+  function closeDrawer() { $("drawer").classList.remove("open"); $("scrim").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); }
+
+  // ---------- chart helpers ----------
   function tipFor(box) {
-    let t = box.querySelector(".tip"); if (!t) { t = document.createElement("div"); t.className = "tip"; box.appendChild(t); }
+    let t = box.querySelector(":scope > .tip"); if (!t) { t = el("div", "tip"); box.appendChild(t); }
     return {
       show(ev, lines) {
-        t.replaceChildren(...lines.map((l, i) => { const d = document.createElement("div"); if (!i) d.className = "h"; d.textContent = l; return d; }));
-        t.style.display = "block"; const r = box.getBoundingClientRect();
-        let x = ev.clientX - r.left + 12, y = ev.clientY - r.top + 12;
+        t.replaceChildren(...lines.filter(Boolean).map((l, i) => el("div", i ? "" : "h", l))); t.style.display = "block";
+        const r = box.getBoundingClientRect(); let x = ev.clientX - r.left + 12, y = ev.clientY - r.top + 12;
         if (x + t.offsetWidth > box.clientWidth) x = ev.clientX - r.left - t.offsetWidth - 12;
         if (y + t.offsetHeight > box.clientHeight) y = Math.max(0, ev.clientY - r.top - t.offsetHeight - 12);
         t.style.left = Math.max(0, x) + "px"; t.style.top = y + "px";
       }, hide() { t.style.display = "none"; }
     };
   }
-  function axisStyle(g) { g.attr("font-size", null).attr("font-family", null); g.selectAll("text").attr("fill", css("--muted")).style("font-size", "12px"); g.selectAll("line,path").attr("stroke", css("--line")); }
-  function capText(svg, x, y, txt, anchor) { return svg.append("text").attr("x", x).attr("y", y).attr("text-anchor", anchor || "start").attr("fill", css("--muted")).style("font-size", "12px").text(txt); }
-
+  function axisStyle(g) { g.attr("font-size", null).attr("font-family", null); g.selectAll("text").attr("fill", css("--muted")).style("font-size", "11.5px"); g.selectAll("line,path").attr("stroke", css("--line")); }
   function lineChart(box, dates, series, o) {
-    const W = Math.max(280, box.clientWidth), H = 240, m = { t: 20, r: 50, b: 26, l: 42 };
+    const W = Math.max(260, box.clientWidth || 400), H = 220, m = { t: 22, r: 44, b: 26, l: 40 };
     const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
-    const x = d3.scalePoint(dates, [m.l, W - m.r]).padding(0.3);
-    const vals = series.flatMap((s) => s.pts.map((p) => p.v)); const e = d3.extent(vals); const pad = (e[1] - e[0]) * 0.15 || Math.abs(e[1]) * 0.05 || 1;
-    const y = d3.scaleLinear([e[0] - pad, e[1] + pad], [H - m.b, m.t]).nice(4);
-    const step = Math.max(1, Math.ceil(dates.length / Math.max(2, Math.floor((W - m.l - m.r) / 60))));
+    const x = d3.scalePoint(dates, [m.l, W - m.r]).padding(0.35);
+    let dom = o.domain; if (!dom) { const e = d3.extent(series.flatMap((s) => s.pts.map((p) => p.v))); const pad = (e[1] - e[0]) * 0.18 || Math.abs(e[1]) * 0.05 || 1; dom = [e[0] - pad, e[1] + pad]; }
+    const y = d3.scaleLinear(dom, [H - m.b, m.t]).nice(4);
+    if (o.sel && dates.includes(o.sel)) svg.append("rect").attr("x", x(o.sel) - 14).attr("width", 28).attr("y", m.t).attr("height", H - m.b - m.t).attr("fill", css("--soft"));
+    const step = Math.max(1, Math.ceil(dates.length / Math.max(2, Math.floor((W - m.l - m.r) / 58))));
     svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickValues(dates.filter((d, i) => i % step === 0)).tickFormat(dShort).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
-    const ya = svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(o.fmt).tickSize(-(W - m.l - m.r))).call(axisStyle);
-    ya.select(".domain").remove(); ya.selectAll("line").attr("opacity", 0.7);
-    capText(svg, m.l, 12, o.title);
+    const ya = svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(o.fmt).tickSize(-(W - m.l - m.r))).call(axisStyle); ya.select(".domain").remove(); ya.selectAll("line").attr("opacity", 0.7);
+    svg.append("text").attr("x", m.l).attr("y", 12).attr("fill", css("--muted")).style("font-size", "11.5px").style("font-weight", 600).text(o.title);
     const tip = tipFor(box);
     series.forEach((s) => {
-      svg.append("path").datum(s.pts).attr("fill", "none").attr("stroke", s.color).attr("stroke-width", 2).attr("stroke-linecap", "round").attr("stroke-linejoin", "round").attr("d", d3.line().x((p) => x(p.d)).y((p) => y(p.v)));
-      svg.selectAll(null).data(s.pts).join("circle").attr("cx", (p) => x(p.d)).attr("cy", (p) => y(p.v)).attr("r", 5)
-        .attr("fill", (p) => (p.hollow ? css("--panel") : s.color)).attr("stroke", s.color).attr("stroke-width", 2)
+      svg.append("path").datum(s.pts).attr("fill", "none").attr("stroke", s.color).attr("stroke-width", 2.2).attr("stroke-linecap", "round").attr("stroke-linejoin", "round").attr("d", d3.line().x((p) => x(p.d)).y((p) => y(p.v)));
+      svg.selectAll(null).data(s.pts).join("circle").attr("cx", (p) => x(p.d)).attr("cy", (p) => y(p.v)).attr("r", 4.5).attr("fill", (p) => (p.hollow ? css("--panel") : s.color)).attr("stroke", s.color).attr("stroke-width", 2)
         .on("mousemove", (ev, p) => tip.show(ev, [dLong(p.d), `${s.name}: ${o.fmt(p.v)}${p.note ? " · " + p.note : ""}`])).on("mouseleave", tip.hide);
-      const last = s.pts[s.pts.length - 1];
-      if (last) svg.append("text").attr("x", x(last.d) + 9).attr("y", y(last.v) + 4).attr("fill", s.color).style("font-size", "12px").text(o.fmt(last.v));
+      const last = s.pts[s.pts.length - 1]; if (last) svg.append("text").attr("x", x(last.d) + 8).attr("y", y(last.v) + 4).attr("fill", s.color).style("font-size", "11.5px").style("font-weight", 600).text(o.fmt(last.v));
     });
   }
-
-  function render() {
-    const has = A.rows.length > 0;
-    $("empty").hidden = has; $("dash").hidden = !has;
-    const dates = A.team.map((t) => t.date);
-    $("subline").textContent = has ? `${dates.length} test${dates.length > 1 ? "s" : ""} · ${dLong(dates[0])} to ${dLong(dates[dates.length - 1])} · ${new Set(A.rows.map((r) => r.name)).size} players` : "No tests loaded yet";
-    renderSessions();
-    if (!has) { $("dateSel").replaceChildren(); return; }
-    if (!dates.includes(date)) date = dates[dates.length - 1];
-    $("dateSel").replaceChildren(...dates.slice().reverse().map((d) => new Option(dLong(d), d))); $("dateSel").value = date;
-    const t = A.team.find((x) => x.date === date), cur = A.rows.filter((r) => r.date === date);
-
-    // tiles
-    $("t-jh").textContent = f1(t.jh) + " cm"; $("t-rsi").textContent = f2(t.rsi);
-    $("t-cmd").textContent = t.depth == null ? "—" : f1(Math.abs(t.depth)) + " cm";
-    $("t-n").textContent = t.n; $("t-asym").textContent = `${t.asym_flags} of ${t.n}`;
-    const chg = (id, v, f, unit) => { const el = $(id); el.className = "chg"; if (v == null) { el.textContent = "First clean test"; return; } el.textContent = `${sgn(v, f)}${unit} vs ${dShort(t.ref)}`; if (Math.abs(v) > 1e-9) el.classList.add(v > 0 ? "ok" : "bad"); };
-    chg("t-jh-c", t.jh_chg, f1, " cm"); chg("t-rsi-c", t.rsi_chg, f2, "");
-    $("t-cmd-c").textContent = t.depth_chg == null ? "First clean test" : `${t.depth_chg > 0 ? "Shallower" : "Deeper"} by ${f1(Math.abs(t.depth_chg))} cm vs ${dShort(t.ref)}`;
-    const bw = $("t-bw"); bw.className = "chg " + (t.bw_flags ? "warn" : ""); bw.textContent = t.bw_flags ? `${t.bw_flags} with an off bodyweight reading` : "All bodyweights read normally";
-
-    // takeaway
-    let s = `<b>${dLong(date)}:</b> `;
-    if (t.bw_issue) s += `${t.bw_flags} of ${t.n} bodyweight readings were off from those players' other tests — check the plate zero and weigh-in, and treat this test's jump heights as inflated. `;
-    else if (t.jh_chg != null) {
-      s += `team jump height ${sgn(t.jh_chg, f1)} cm vs ${dShort(t.ref)} while RSI-mod moved ${sgn(t.rsi_chg, f2)}`;
-      s += t.depth_chg != null && t.depth_chg > 2 && t.rsi_chg >= 0 ? " — players dipped shallower and jumped faster, so the height drop looks like jump strategy more than fatigue. " : ". ";
-    } else s += "first test on file. ";
-    const checks = cur.filter((r) => r.status === "Check").map((r) => r.name);
-    s += checks.length ? `<b>${checks.length} marked Check:</b> ${checks.map(escapeHTML).join(", ")}.` : "No one is marked Check.";
-    $("takeaway").innerHTML = s;
-
-    renderTable(cur); renderTrend(dates); renderQuad(cur, t); renderAsym(cur); renderPlayer(dates);
+  function spark(box, vals, dom) {
+    if (vals.length < 2) { box.appendChild(el("span", "muted", vals.length ? "1 score" : "—")).style.fontSize = "12px"; return; }
+    const W = 120, H = 28, x = d3.scaleLinear([0, vals.length - 1], [3, W - 3]), y = d3.scaleLinear(dom, [H - 3, 3]);
+    const svg = d3.select(box).append("svg").attr("width", W).attr("height", H);
+    svg.append("path").datum(vals).attr("fill", "none").attr("stroke", css("--c3")).attr("stroke-width", 2).attr("stroke-linecap", "round").attr("d", d3.line().x((v, i) => x(i)).y((v) => y(v)));
+    svg.append("circle").attr("cx", x(vals.length - 1)).attr("cy", y(vals[vals.length - 1])).attr("r", 3).attr("fill", css("--c3"));
   }
-  function escapeHTML(x) { return String(x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function sortRows(rows, k, dir) { return rows.slice().sort((a, b) => { const av = a[k], bv = b[k]; if (av == null && bv == null) return a.name.localeCompare(b.name); if (av == null) return 1; if (bv == null) return -1; return (typeof av === "string" ? av.localeCompare(bv) : av - bv) * dir || a.name.localeCompare(b.name); }); }
+  function markSort(id) { const [k, dir] = sorts[id]; document.querySelectorAll(`#${id} th`).forEach((th) => th.setAttribute("aria-sort", th.querySelector("button").dataset.k === k ? (dir > 0 ? "ascending" : "descending") : "none")); }
 
-  function renderTable(cur) {
-    const tb = $("ptable").querySelector("tbody"); tb.replaceChildren();
-    document.querySelectorAll("#ptable th").forEach((th) => th.setAttribute("aria-sort", th.querySelector("button").dataset.k === sortK ? (sortDir > 0 ? "ascending" : "descending") : "none"));
-    const rows = cur.slice().sort((a, b) => {
-      const av = a[sortK], bv = b[sortK]; if (av == null && bv == null) return 0; if (av == null) return 1; if (bv == null) return -1;
-      return (typeof av === "string" ? av.localeCompare(bv) : av - bv) * sortDir || a.name.localeCompare(b.name);
-    });
-    for (const r of rows) {
-      const tr = document.createElement("tr"); tr.tabIndex = 0; tr.dataset.name = r.name;
-      const td = (txt, cls) => { const c = document.createElement("td"); c.textContent = txt; if (cls) c.className = cls; tr.appendChild(c); return c; };
-      td(r.name);
-      const st = td(""); const p = document.createElement("span"); p.className = "pill " + stCls[r.status]; p.textContent = r.status; st.appendChild(p);
-      td(r.bw == null ? "—" : f1(r.bw) + (r.bw_flag ? " ⚠" : ""), r.bw_flag ? "warn" : "");
-      td(f1(r.jh));
-      td(r.jh_chg == null ? "—" : pct(r.jh_chg), r.jh_chg == null ? "" : r.jh_chg <= -0.1 ? "bad" : r.jh_chg >= 0.05 ? "ok" : "");
-      td(f2(r.rsi));
-      td(r.rsi_chg == null ? "—" : pct(r.rsi_chg), r.rsi_chg == null ? "" : r.rsi_chg <= -0.1 ? "bad" : r.rsi_chg <= -0.05 ? "warn" : r.rsi_chg >= 0.05 ? "ok" : "");
-      td(r.depth == null ? "—" : f1(Math.abs(r.depth)));
-      td(r.epv == null ? "—" : f2(Math.abs(r.epv)));
-      td(asymTxt(r.decel), asymCls(r.decel)); td(asymTxt(r.conc), asymCls(r.conc)); td(asymTxt(r.land), asymCls(r.land));
-      td(r.reps == null ? "—" : String(r.reps), r.reps != null && r.reps < 3 ? "warn" : "");
-      tb.appendChild(tr);
-    }
-  }
-
-  function renderTrend(dates) {
-    const box = $("trend"); box.replaceChildren();
-    const wrap = document.createElement("div"); wrap.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))"; box.appendChild(wrap);
-    const a = document.createElement("div"), b = document.createElement("div"); a.style.position = b.style.position = "relative"; wrap.append(a, b);
-    const note = (t) => (t.bw_issue ? `${t.bw_flags} of ${t.n} BW readings off` : "");
-    lineChart(a, dates, [{ name: "Jump height", color: css("--c1"), pts: A.team.map((t) => ({ d: t.date, v: t.jh, hollow: t.bw_issue, note: note(t) })) }], { fmt: f1, title: "Jump height (cm)" });
-    lineChart(b, dates, [{ name: "RSI-mod", color: css("--c3"), pts: A.team.map((t) => ({ d: t.date, v: t.rsi, hollow: t.bw_issue, note: note(t) })) }], { fmt: f2, title: "RSI-modified" });
-  }
-
-  function renderQuad(cur, t) {
-    const box = $("quad"); box.replaceChildren();
-    const W = Math.max(300, box.clientWidth), H = 300, m = { t: 22, r: 16, b: 34, l: 42 };
-    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
-    const x = d3.scaleLinear(d3.extent(cur, (r) => r.rsi), [m.l, W - m.r]).nice();
-    const y = d3.scaleLinear(d3.extent(cur, (r) => r.jh), [H - m.b, m.t]).nice();
-    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(5).tickFormat(f2)).call(axisStyle);
-    svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5)).call(axisStyle);
-    capText(svg, W - m.r, H - 2, "RSI-mod →", "end"); capText(svg, m.l, 12, "↑ Jump height (cm)");
-    const mx = x(t.rsi), my = y(t.jh);
-    svg.append("line").attr("x1", mx).attr("x2", mx).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", css("--muted")).attr("stroke-dasharray", "4 4");
-    svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", my).attr("y2", my).attr("stroke", css("--muted")).attr("stroke-dasharray", "4 4");
-    capText(svg, W - m.r - 2, m.t + 12, "High & fast", "end"); capText(svg, m.l + 4, m.t + 12, "High, slow");
-    capText(svg, W - m.r - 2, H - m.b - 6, "Low, fast", "end"); capText(svg, m.l + 4, H - m.b - 6, "Low & slow");
-    const col = { Ready: css("--ok"), Monitor: css("--warn"), Check: css("--bad") }; const tip = tipFor(box);
-    const g = svg.selectAll(null).data(cur).join("g").style("cursor", "pointer").on("click", (ev, r) => openPlayer(r.name));
-    g.append("circle").attr("cx", (r) => x(r.rsi)).attr("cy", (r) => y(r.jh)).attr("r", 6).attr("fill", (r) => col[r.status]).attr("fill-opacity", 0.85).attr("stroke", css("--panel")).attr("stroke-width", 1.5)
-      .on("mousemove", (ev, r) => tip.show(ev, [r.name, `Jump ${f1(r.jh)} cm · RSI-mod ${f2(r.rsi)}`, r.status])).on("mouseleave", tip.hide);
-    g.append("text").attr("y", (r) => y(r.jh) + 4).style("font-size", "12px").attr("fill", css("--fg")).text((r) => r.name.split(" ").slice(-1)[0])
-      .each(function (r) { const right = x(r.rsi) > W - 90; d3.select(this).attr("x", x(r.rsi) + (right ? -9 : 9)).attr("text-anchor", right ? "end" : "start"); });
-  }
-
-  function renderAsym(cur) {
-    const box = $("asym"); box.replaceChildren();
-    const list = cur.filter((r) => r.decel != null || r.conc != null || r.land != null).sort((a, b) => b.max_asym - a.max_asym);
-    if (!list.length) { box.textContent = "This export has no asymmetry columns."; box.style.minHeight = ""; return; }
-    const W = Math.max(300, box.clientWidth), rowH = 26, m = { t: 26, r: 16, b: 10, l: 0 };
-    const svg = d3.select(box).append("svg").attr("width", "100%");
-    const lw = d3.max(list, (r) => { const tx = svg.append("text").style("font-size", "12px").text(r.name); const w = tx.node().getComputedTextLength(); tx.remove(); return w; }) || 90;
-    m.l = Math.min(lw + 14, W * 0.4);
-    const H = m.t + list.length * rowH + m.b; svg.attr("viewBox", `0 0 ${W} ${H}`); box.style.minHeight = H + "px";
-    const lim = Math.max(25, Math.ceil((d3.max(list, (r) => r.max_asym) || 0) / 5) * 5 + 5);
-    const x = d3.scaleLinear([-lim, lim], [m.l, W - m.r]);
-    svg.append("rect").attr("x", x(-15)).attr("width", x(15) - x(-15)).attr("y", m.t - 4).attr("height", H - m.t - m.b + 4).attr("fill", css("--warn")).attr("opacity", 0.08);
-    svg.append("rect").attr("x", x(-10)).attr("width", x(10) - x(-10)).attr("y", m.t - 4).attr("height", H - m.t - m.b + 4).attr("fill", css("--ok")).attr("opacity", 0.09);
-    [-15, -10, 0, 10, 15].forEach((v) => svg.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t - 4).attr("y2", H - m.b).attr("stroke", css(v === 0 ? "--muted" : "--line")));
-    [-(lim - 5), -15, 0, 15, lim - 5].forEach((v) => capText(svg, x(v), 12, v === 0 ? "0" : Math.abs(v) + "% " + (v < 0 ? "L" : "R"), "middle"));
-    const metrics = [["decel", "Decel impulse", css("--c1")], ["conc", "Concentric impulse", css("--c3")], ["land", "Peak landing force", css("--c4")]];
-    const tip = tipFor(box);
-    list.forEach((r, i) => {
-      const cy = m.t + i * rowH + rowH / 2;
-      svg.append("text").attr("x", m.l - 10).attr("y", cy + 4).attr("text-anchor", "end").attr("fill", css("--fg")).style("font-size", "12px").style("cursor", "pointer").text(r.name).on("click", () => openPlayer(r.name));
-      svg.append("line").attr("x1", m.l).attr("x2", W - m.r).attr("y1", cy).attr("y2", cy).attr("stroke", css("--line")).attr("opacity", 0.6);
-      metrics.forEach(([k, label, c]) => {
-        const v = r[k]; if (v == null) return;
-        svg.append("circle").attr("cx", x(Math.max(-lim, Math.min(lim, -v)))).attr("cy", cy).attr("r", 5.5).attr("fill", c).attr("stroke", css("--panel")).attr("stroke-width", 1.5)
-          .on("mousemove", (ev) => tip.show(ev, [r.name, `${label}: ${asymTxt(v).replace(" ", "% ")}`])).on("mouseleave", tip.hide);
-      });
-    });
-    $("asymLegend").replaceChildren(...metrics.map(([, label, c]) => { const s = document.createElement("span"); const i = document.createElement("i"); i.style.background = c; s.append(i, label); return s; }));
-  }
-
-  function renderPlayer(dates) {
-    const names = [...new Set(A.rows.map((r) => r.name))].sort();
-    if (!names.includes(player)) player = names[0];
-    $("playerSel").replaceChildren(...names.map((n) => new Option(n))); $("playerSel").value = player;
-    const ph = A.rows.filter((r) => r.name === player).sort((a, b) => (a.date < b.date ? -1 : 1));
-    const muted = css("--chart-muted"), n = (r) => (r.bw_flag ? "BW reading off" : "");
-    const a = $("pjh"), b = $("prsi"); a.replaceChildren(); b.replaceChildren();
-    lineChart(a, dates, [{ name: "Team", color: muted, pts: A.team.map((t) => ({ d: t.date, v: t.jh, hollow: t.bw_issue })) }, { name: player, color: css("--c1"), pts: ph.map((r) => ({ d: r.date, v: r.jh, hollow: r.bw_flag, note: n(r) })) }], { fmt: f1, title: "Jump height (cm)" });
-    lineChart(b, dates, [{ name: "Team", color: muted, pts: A.team.map((t) => ({ d: t.date, v: t.rsi, hollow: t.bw_issue })) }, { name: player, color: css("--c3"), pts: ph.map((r) => ({ d: r.date, v: r.rsi, hollow: r.bw_flag, note: n(r) })) }], { fmt: f2, title: "RSI-modified" });
-  }
-
-  function renderSessions() {
-    const all = merged(), byDate = d3.rollups(all, (g) => g.length, (r) => r.date).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-    const localDates = new Set(local.map((r) => r.date)), sharedDates = new Set(shared.map((r) => r.date));
-    $("storeNote").textContent = `Tests from the site's data folder show for everyone. Tests you drop in here are saved in this browser only${local.length ? ` (${new Set(local.map((r) => r.date)).size} test date${localDates.size > 1 ? "s" : ""} so far)` : ""} — upload the CSV to the GitHub data folder to share them.`;
-    $("sessions").replaceChildren(...byDate.map(([d, n]) => {
-      const c = document.createElement("div"); c.className = "chip";
-      const label = document.createElement("span"); label.textContent = `${dLong(d)} · ${n} players · ${localDates.has(d) ? "this browser" : "shared"}`; c.appendChild(label);
-      if (localDates.has(d)) { const btn = document.createElement("button"); btn.textContent = "Remove"; btn.onclick = () => { if (!confirm(`Remove ${dLong(d)} from this browser?${sharedDates.has(d) ? " The shared copy will still show." : ""}`)) return; local = local.filter((r) => r.date !== d); saveLocal(); refresh(); }; c.appendChild(btn); }
-      return c;
-    }));
-  }
-
+  // ================= events =================
   function refresh() { A = analyze(merged()); render(); }
-  function openPlayer(n) { player = n; render(); $("player").scrollIntoView({ behavior: "smooth", block: "start" }); }
-
-  // ---------- events ----------
   async function addFiles(files) {
-    let added = 0, dates = new Set();
+    let added = 0; const dates = new Set();
     for (const fl of files) {
-      try {
-        const rows = parseExport(await fl.text());
-        const m = new Map(local.map((r) => [key(r), r])); rows.forEach((r) => { m.set(key(r), r); dates.add(r.date); }); local = [...m.values()]; added += rows.length;
-      } catch (e) { toast(`${fl.name}: ${e.message}`); }
+      try { const rows = parseExport(await fl.text()); const m = new Map(local.map((r) => [key(r), r])); rows.forEach((r) => { m.set(key(r), r); dates.add(r.date); }); local = [...m.values()]; added += rows.length; }
+      catch (e) { toast(`${fl.name}: ${e.message}`); }
     }
     if (!added) return;
     const ok = saveLocal(); date = [...dates].sort().pop(); refresh();
-    toast(`Added ${added} jumps across ${dates.size} test date${dates.size > 1 ? "s" : ""}.${ok ? "" : " This browser won't keep them after you close the page."}`);
+    toast(`Added ${added} jumps across ${dates.size} test date${dates.size > 1 ? "s" : ""}.${ok ? " Saved in this browser — upload to GitHub to share." : " This browser can't keep them after you close the page."}`);
   }
+  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+  window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
-  const drop = $("drop");
-  ["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
-  ["dragleave", "drop"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); if (ev === "drop" || e.target === document.documentElement) drop.classList.remove("over"); }));
-  document.addEventListener("drop", (e) => { const f = [...(e.dataTransfer?.files || [])].filter((x) => /\.csv$/i.test(x.name) || x.type === "text/csv"); if (f.length) addFiles(f); else toast("Drop a .csv file from ForceDecks."); });
+  let dragDepth = 0;
+  document.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { e.preventDefault(); dragDepth++; document.body.classList.add("dragging"); } });
+  document.addEventListener("dragover", (e) => e.preventDefault());
+  document.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove("dragging"); });
+  document.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging"); const f = [...(e.dataTransfer?.files || [])].filter((x) => /\.csv$/i.test(x.name) || x.type === "text/csv"); if (f.length) addFiles(f); else toast("Drop a .csv file from ForceDecks."); });
   $("dateSel").addEventListener("change", (e) => { date = e.target.value; render(); });
-  $("playerSel").addEventListener("change", (e) => { player = e.target.value; render(); });
-  document.querySelectorAll("#ptable th button").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.k; if (sortK === k) sortDir = -sortDir; else { sortK = k; sortDir = k === "name" || k === "status_rank" ? 1 : -1; } render(); }));
-  $("ptable").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr) openPlayer(tr.dataset.name); });
-  $("ptable").addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr && e.key === "Enter") openPlayer(tr.dataset.name); });
+  document.querySelectorAll("#roster th button, #dtable th button").forEach((b) => b.addEventListener("click", () => {
+    const id = b.closest("table").id, k = b.dataset.k, s = sorts[id];
+    if (s[0] === k) s[1] = -s[1]; else { s[0] = k; s[1] = ["name", "qorder", "flagtxt", "score"].includes(k) ? 1 : -1; } render();
+  }));
+  ["roster", "dtable"].forEach((id) => { const t = $(id); t.addEventListener("click", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr) openPlayer(tr.dataset.name); }); t.addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr && e.key === "Enter") openPlayer(tr.dataset.name); }); });
+  $("planSearch").addEventListener("input", (e) => { planQuery = e.target.value; renderPlans(); });
+  $("printBtn").addEventListener("click", () => { $("v-plans").classList.add("print"); window.print(); setTimeout(() => $("v-plans").classList.remove("print"), 500); });
+  $("dClose").addEventListener("click", closeDrawer); $("scrim").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
   $("exportBtn").addEventListener("click", () => {
     const cols = ["Name", "Date", "BW [KG]", "Reps", "Jump Height (Imp-Mom) [cm]", "RSI-modified [m/s]", "Eccentric Peak Velocity [m/s]", "Countermovement Depth [cm]", "Eccentric Deceleration Impulse % (Asym) (%)", "Concentric Impulse % (Asym) (%)", "Peak Landing Force % (Asym) (%)"];
-    const side = (v) => (v == null ? "" : Math.abs(v) + (v >= 0 ? " L" : " R"));
-    const q = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    const side = (v) => (v == null ? "" : Math.abs(v) + (v >= 0 ? " L" : " R")), q = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
     const lines = [cols.map(q).join(",")].concat(merged().sort((a, b) => (a.date < b.date ? 1 : -1)).map((r) => { const [y, m, d] = r.date.split("-"); return [r.name, `${m}/${d}/${y}`, r.bw, r.reps, r.jh, r.rsi, r.epv, r.depth, side(r.decel), side(r.conc), side(r.land)].map(q).join(","); }));
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = "etsu-cmj-all-tests.csv"; a.click(); URL.revokeObjectURL(a.href);
   });
@@ -530,7 +872,7 @@ tbody tr{cursor:pointer} tbody tr:hover{background:var(--soft)}
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => A.rows.length && render(), 150); });
   if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => A.rows.length && render());
 
-  (async function init() { loadLocal(); await loadShared(); refresh(); })();
+  (async function init() { loadLocal(); await loadShared(); A = analyze(merged()); route(); })();
 })();
 </script>
 </body>
