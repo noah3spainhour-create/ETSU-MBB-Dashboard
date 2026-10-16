@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root{
   --navy:#041E42; --navy2:#0B2A55; --gold:#FFC72C;
@@ -182,6 +183,31 @@ td .pname{font-weight:600}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;border-left:4px solid var(--gold);display:none;max-width:92vw;z-index:60}
 .dropveil{position:fixed;inset:0;background:rgba(4,30,66,.55);z-index:70;display:none;place-items:center;color:#fff;font:700 28px "Barlow Condensed",sans-serif}
 body.dragging .dropveil{display:grid}
+.ex.imb{background:var(--warnbg);border-radius:10px;padding:10px 12px}
+.ex.imb h5{color:var(--warn)}
+.imbnote{font-size:13px;margin:2px 0 6px}
+.paper{background:#fff;color:#0E1A2B;border:1px solid var(--line);border-radius:12px;max-width:860px;width:100%;margin:0 auto;overflow:hidden;box-shadow:var(--shadow)}
+.paper .muted{color:#5D6879}
+.rp-head{background:#041E42;color:#fff;padding:22px 28px 18px;border-bottom:4px solid #FFC72C}
+.rp-kicker{color:#FFC72C;font-weight:700;font-size:11.5px;letter-spacing:1px}
+.rp-hrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.rp-title{font:700 30px "Barlow Condensed",sans-serif}
+.rp-date{color:#CDD7E6}
+.rp-sec{padding:16px 28px 4px}
+.rp-sec h4{margin:0 0 10px;font-size:17px}
+.rp-sec p{margin:6px 0;font-size:14.5px}
+.rp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:8px}
+.rp-tile{border-radius:10px;padding:10px 14px;font-weight:600;border-left:5px solid currentColor}
+.rp-n{font:700 32px "Barlow Condensed",sans-serif;line-height:1}
+.paper .p-ready{background:#E5F3EB;color:#1C7F47}.paper .p-mon{background:#FFF3D6;color:#9A6A00}.paper .p-fat{background:#FBE6E4;color:#B8322A}.paper .p-none{background:#F0F3F7;color:#5D6879}
+.rp-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.rp-table th{position:static;background:#041E42;color:#fff;text-transform:none;letter-spacing:0;font-size:12.5px;padding:8px 10px;text-align:left}
+.rp-table td{text-align:left;white-space:normal;padding:8px 10px;border-bottom:1px solid #E1E5EC;vertical-align:top}
+.rp-table tr:nth-child(even) td{background:#F7F9FB}
+.rp-name{font-weight:700}
+.rp-watch{border-left:5px solid;border-radius:8px;background:#F7F9FB;padding:10px 14px;margin-bottom:8px;font-size:14px;display:grid;gap:3px}
+.rp-key{padding-bottom:20px}.rp-key>div{margin:6px 0;font-size:14px}
+@media(max-width:640px){.rp-table{font-size:12.5px}.rp-sec{padding:14px 16px 4px}}
 [hidden]{display:none!important}
 
 @media print{
@@ -211,6 +237,7 @@ body.dragging .dropveil{display:grid}
   <a href="#profiles" data-v="profiles">Jumper profiles</a>
   <a href="#plans" data-v="plans">Exercise plans</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
+  <a href="#report" data-v="report">Coach report</a>
   <a href="#data" data-v="data">Data &amp; uploads</a>
 </div></nav>
 
@@ -259,7 +286,7 @@ body.dragging .dropveil{display:grid}
 
   <!-- PLANS -->
   <section class="view" id="v-plans">
-    <div class="pagehead"><div><h2>Exercise plans</h2><p>Starting-point exercise selection for each player, built from his jumper type, left–right asymmetry and countermovement speed on the selected test. Adjust for training history and any injury status.</p></div>
+    <div class="pagehead"><div><h2>Exercise plans</h2><p>For each player: four squat and four hinge variations picked for his jumper type — to keep him performing or to fix what's holding him back — plus single-leg work aimed at his weaker side when his legs are more than 10% apart. Adjust for training history and any injury status.</p></div>
       <button class="btn noprint" id="printBtn">Print plans</button></div>
     <div class="toolbar">
       <div class="seg" id="planFilter" role="group" aria-label="Filter by type"></div>
@@ -281,6 +308,13 @@ body.dragging .dropveil{display:grid}
       <div class="card"><h3>Score distribution</h3><p class="note">How many players at each score this test.</p><div class="box" id="rdist"></div></div>
     </div>
     <div class="card"><h3>Left–right asymmetry</h3><p class="note">Not part of the score, but worth checking alongside it. Left of center favors the left leg. Shaded bands mark 10% and 15%.</p><div class="box" id="asym"></div><div class="legend" id="asymLegend"></div></div>
+  </section>
+
+  <!-- REPORT -->
+  <section class="view" id="v-report">
+    <div class="pagehead"><div><h2>Coach report</h2><p>A one-page summary in plain language for the coaching staff. It uses the test date picked at the top of the page.</p></div>
+      <button class="btn btn-gold" id="pdfBtn">⬇ Download PDF</button></div>
+    <div class="paper" id="paper"></div>
   </section>
 
   <!-- DATA -->
@@ -414,20 +448,24 @@ body.dragging .dropveil{display:grid}
   const Q = {
     elite: { name: "Explosive Elite", short: "High output, fast", color: "--q-elite", order: 0,
       desc: "Jumps high and gets there quickly. The most complete jump profile on the roster.",
-      focus: "Maintain strength and elastic qualities, push the speed–strength ceiling, and manage load.",
-      ex: [["Trap bar jump", "4 × 3 @ 20–30% 1RM", "Loaded speed to keep raising the ceiling"], ["Depth jump (12–18 in box)", "3 × 4", "Fast ground contact, max height"], ["Hang power clean", "4 × 3", "Triple-extension power"], ["Back squat", "3 × 4 @ 80–85%", "Hold strength in-season"]] },
+      goal: "Keep doing what's working: hold strength, keep moving weight fast, and manage total load.",
+      squat: [["Back squat", "4 × 3 @ 82–87%", "Heavy enough to hold max strength in-season"], ["Front squat", "3 × 4 @ 75–80%", "Upright, quad-dominant strength that carries over to jumping"], ["Jump squat (trap bar or DB)", "4 × 3 @ 20–30% BW", "Keeps strength fast — move the weight explosively"], ["Rear-foot elevated split squat", "3 × 5 each", "Single-leg strength for cutting and one-foot takeoffs"]],
+      hinge: [["Trap bar deadlift", "4 × 3 @ 80–85%", "Heavy hip and leg strength with low back stress"], ["Hang power clean", "4 × 3", "Fast triple extension — hips, knees, ankles"], ["Romanian deadlift", "3 × 6", "Hamstring strength and durability"], ["Kettlebell swing", "3 × 8", "Snappy hip extension, easy on the legs"]] },
     power: { name: "Power Loader", short: "High output, slow", color: "--q-power", order: 1,
-      desc: "Produces plenty of height but takes a long time to get off the floor. Strong, but not yet elastic.",
-      focus: "Shorten time to takeoff: reactive and elastic work, faster countermovements. Keep strength in place.",
-      ex: [["Pogo hops", "3 × 15 s", "Stiff ankles, quick contacts"], ["Drop jump (low box, react fast)", "4 × 4", "Train the stretch-shortening cycle"], ["Hurdle hops (continuous)", "4 × 5", "Minimize ground time between jumps"], ["Band-assisted CMJ", "4 × 4", "Overspeed takeoff"], ["Trap bar deadlift", "3 × 4 @ 80%", "Maintain the strength base"]] },
+      desc: "Produces plenty of height but takes a long time to get off the floor. Strong, but not yet quick.",
+      goal: "Turn his strength into speed: lighter loads moved fast, and quicker hip snap. Keep strength steady.",
+      squat: [["Speed box squat", "6 × 2 @ 50–60%", "Sit to the box, then drive up as fast as possible"], ["Jump squat (light)", "4 × 4 @ 10–20% BW", "Teaches him to produce force quickly"], ["Front squat", "3 × 4 @ 70–75%", "Holds strength without heavy grinding"], ["Split squat jump", "3 × 4 each", "Quick, elastic single-leg power"]],
+      hinge: [["Trap bar jump", "4 × 3 @ 20% 1RM", "Loaded jump that rewards speed off the floor"], ["Kettlebell swing", "4 × 6", "Fast, explosive hip snap"], ["Hang clean pull", "4 × 3", "Rapid triple extension"], ["Romanian deadlift", "3 × 6", "Keep hamstring strength in place"]] },
     quick: { name: "Quick Spring", short: "Low output, fast", color: "--q-quick", order: 2,
-      desc: "Gets off the floor quickly but doesn't produce enough force to jump high. Elastic, but under-powered.",
-      focus: "Build force: heavy lower-body strength and loaded jumps. Keep some reactive work so he stays quick.",
-      ex: [["Front or back squat", "4 × 5 @ 78–85%", "Raise max force"], ["Trap bar deadlift", "4 × 4 @ 80–85%", "Hip and leg strength"], ["Loaded jump squat", "4 × 4 @ 20% BW", "Turn strength into jump height"], ["Romanian deadlift", "3 × 6", "Posterior-chain strength"], ["Hip thrust", "3 × 8", "Hip-extension force"]] },
+      desc: "Gets off the floor quickly but doesn't produce enough force to jump high. Quick, but under-powered.",
+      goal: "Build force: heavier squats and pulls to raise his strength ceiling. His speed is already there.",
+      squat: [["Back squat", "4 × 5 @ 78–85%", "Raise max lower-body strength"], ["Front squat", "4 × 4 @ 75–80%", "Quad strength with an upright torso"], ["Belt squat or safety bar squat", "3 × 6", "Extra squat volume without loading the back"], ["Heels-elevated goblet squat", "3 × 8", "Knee-dominant strength through full depth"]],
+      hinge: [["Trap bar deadlift", "4 × 4 @ 80–85%", "Heavy hip and leg force"], ["Romanian deadlift", "4 × 6", "Posterior-chain strength"], ["Barbell hip thrust", "3 × 8", "Hip-extension force for takeoff"], ["Good morning", "3 × 8", "Hamstring and low-back strength"]] },
     found: { name: "Foundation Builder", short: "Low output, slow", color: "--q-found", order: 3,
-      desc: "Below the team average on both height and speed. The biggest return comes from general strength first.",
-      focus: "Build a strength base, teach clean landing positions, and add low-level plyometrics as strength improves.",
-      ex: [["Goblet or front squat", "4 × 6", "Base strength through full range"], ["Rear-foot elevated split squat", "3 × 8 each", "Single-leg strength and balance"], ["Romanian deadlift", "3 × 8", "Posterior chain"], ["Box jump (step down)", "4 × 4", "Intent to jump high, low landing stress"], ["Med ball scoop toss", "3 × 5", "Hip-extension power"]] }
+      desc: "Below the team average on both height and speed. The biggest return comes from building general strength first.",
+      goal: "Build the base: own the squat and hinge positions with control, then add load week to week.",
+      squat: [["Goblet squat", "4 × 8", "Learn a strong, controlled squat position"], ["Box squat", "4 × 5", "Consistent depth, safe way to add load"], ["Front squat (light–moderate)", "3 × 6", "Builds up to heavier barbell work"], ["Split squat", "3 × 8 each", "Single-leg strength and balance"]],
+      hinge: [["Kettlebell or DB deadlift", "4 × 8", "Teaches the hip hinge with a manageable load"], ["Dumbbell Romanian deadlift", "3 × 10", "Hamstring strength and hinge control"], ["Hip thrust or glute bridge", "3 × 10", "Hip strength for jumping and sprinting"], ["Kettlebell swing", "3 × 10", "Intro to explosive hip extension"]] }
   };
   const QKEYS = ["elite", "power", "quick", "found"];
 
@@ -491,18 +529,31 @@ body.dragging .dropveil{display:grid}
   }
 
   function planFor(r) {
-    const base = Q[r.q], fix = [];
-    if (r.decel_abs > 10) { const w = weaker(r.decel); fix.push([`Single-leg eccentric split squat (3 s lower)`, `3 × 6 each, +1 set ${w}`, `Braking ${asymTxt(r.decel)}: bias work to the ${w} leg`], [`Single-leg drop to stick`, `3 × 4 each, start ${w}`, `Absorb force evenly on the way down`]); }
-    if (r.conc_abs > 10) { const w = weaker(r.conc); fix.push([`Single-leg box jump`, `3 × 4 each, +1 set ${w}`, `Push-off ${asymTxt(r.conc)}: build ${w}-leg power`], [`B-stance RDL`, `3 × 6 each, lead ${w}`, `Single-leg hip-extension strength`]); }
-    if (r.land_abs > 15) { const heavy = r.land > 0 ? "left" : "right", light = r.land > 0 ? "right" : "left"; fix.push([`Lateral bound to stick`, `3 × 4 each`, `Lands heavier on the ${heavy} — practice even landings`], [`Single-leg landing (low box)`, `3 × 5 each, start ${light}`, `Teach the ${light} leg to take its share`]); }
-    if (r.epv != null && Math.abs(r.epv) < 1.1) fix.push([`Rapid countermovement jump`, `4 × 4`, `Slow descent (${f2(Math.abs(r.epv))} m/s): drop fast and jump straight out of it`], [`Snap-downs`, `3 × 5`, `Quick drop into an athletic stance`]);
+    const base = Q[r.q], fix = [], notes = [];
+    // Weaker side from the larger of braking / push-off asymmetry over 10%
+    const lr = [["braking", r.decel, r.decel_abs], ["push-off", r.conc, r.conc_abs]].filter((x) => x[2] > 10).sort((a, b) => b[2] - a[2]);
+    if (lr.length) {
+      const [what, v] = lr[0], w = weaker(v), W = w[0].toUpperCase() + w.slice(1);
+      notes.push(`${W} leg is weaker (${what} ${asymTxt(v).replace(" ", "% ")}). On every single-leg exercise, start with the ${w} leg and add one extra set on the ${w}.`);
+      fix.push([`Rear-foot elevated split squat`, `3 × 6 each + 1 extra ${w}`, `Single-leg squat strength — closes the ${what} gap`, "squat"]);
+      fix.push([`Step-up (slow 3 s lowering)`, `3 × 6 each, ${w} first`, `Controlled single-leg strength`, "squat"]);
+      fix.push([`Single-leg Romanian deadlift`, `3 × 6 each + 1 extra ${w}`, `Single-leg hinge strength and balance`, "hinge"]);
+      fix.push([`B-stance hip thrust`, `3 × 8 each, ${w} first`, `Hip strength on the weaker side`, "hinge"]);
+    }
+    if (r.land_abs > 15) {
+      const heavy = r.land > 0 ? "left" : "right", light = r.land > 0 ? "right" : "left";
+      notes.push(`Lands heavier on the ${heavy} (${asymTxt(r.land).replace(" ", "% ")}). Teach the ${light} leg to take its share.`);
+      fix.push([`Single-leg landing from low box`, `3 × 5 each, ${light} first`, `Absorb force evenly on both legs`, "land"]);
+      fix.push([`Lateral bound and stick`, `3 × 4 each`, `Balanced landings when moving side to side`, "land"]);
+    }
+    if (r.epv != null && Math.abs(r.epv) < 1.1) notes.push(`Drops slowly into his jump (${f2(Math.abs(r.epv))} m/s). Coach a quick dip on squat jumps and swings.`);
     let adj;
-    if (r.bw_flag) adj = ["p-none", "Bodyweight reading was off on this test, so readiness couldn't be scored. Retest before adjusting the session."];
-    else if (r.band === "fat") adj = ["p-fat", "Fatigued this week: cut jump and plyometric volume by about 40%, keep strength work at RPE 7 or below, and skip the depth jumps."];
-    else if (r.band === "mon") adj = ["p-mon", "Monitor this week: run the normal session but cap intensity around RPE 8 and keep plyometric contacts at the low end."];
-    else if (r.band === "ready") adj = ["p-ready", "Ready this week: run the full session as written."];
-    else adj = ["p-none", "First test on file, so there's no readiness baseline yet. Run the session as written."];
-    return { base, fix, adj };
+    if (r.bw_flag) adj = ["p-none", "Bodyweight reading was off on this test, so readiness couldn't be scored. Retest before changing his loads."];
+    else if (r.band === "fat") adj = ["p-fat", "Fatigued this week: drop to the lower set count, keep loads at RPE 7 or below, and skip the jump squat / trap bar jump."];
+    else if (r.band === "mon") adj = ["p-mon", "Monitor this week: run it as written but cap the heaviest sets around RPE 8."];
+    else if (r.band === "ready") adj = ["p-ready", "Ready this week: run it as written. Good week to push the top sets."];
+    else adj = ["p-none", "First test on file, so there's no readiness baseline yet. Run it as written."];
+    return { base, fix, notes, adj };
   }
 
   // ================= state & render =================
@@ -533,6 +584,7 @@ body.dragging .dropveil{display:grid}
     if (view === "profiles") renderProfiles();
     if (view === "plans") renderPlans();
     if (view === "readiness") renderReadiness();
+    if (view === "report") renderReport();
   }
 
   // ---------- HOME ----------
@@ -647,7 +699,7 @@ body.dragging .dropveil{display:grid}
       ps.forEach((r) => { const b = el("button", "", r.name); b.onclick = () => openPlayer(r.name); who.appendChild(b); });
       if (!ps.length) who.appendChild(el("span", "muted", "No players this test"));
       c.appendChild(who); c.appendChild(el("p", "", Q[q].desc));
-      const fx = el("div", "fx"); fx.appendChild(el("b", "", "Training focus: ")); fx.append(Q[q].focus); c.appendChild(fx);
+      const fx = el("div", "fx"); fx.appendChild(el("b", "", "Training focus: ")); fx.append(Q[q].goal); c.appendChild(fx);
       qc.appendChild(c);
     });
   }
@@ -656,25 +708,165 @@ body.dragging .dropveil{display:grid}
   function renderPlans() {
     const cur = curRows();
     const pf = $("planFilter"); pf.replaceChildren();
-    [["all", "All"], ...QKEYS.map((q) => [q, Q[q].name])].forEach(([k, label]) => { const b = el("button", "", label + (k === "all" ? ` (${cur.length})` : ` (${cur.filter((r) => r.q === k).length})`)); b.setAttribute("aria-pressed", String(planQ === k)); b.onclick = () => { planQ = k; render(); }; pf.appendChild(b); });
+    [["all", "All"], ["asym", "Has imbalance"], ...QKEYS.map((q) => [q, Q[q].name])].forEach(([k, label]) => {
+      const n = k === "all" ? cur.length : k === "asym" ? cur.filter(hasImb).length : cur.filter((r) => r.q === k).length;
+      const b = el("button", "", `${label} (${n})`); b.setAttribute("aria-pressed", String(planQ === k)); b.onclick = () => { planQ = k; render(); }; pf.appendChild(b);
+    });
     const box = $("plans"); box.replaceChildren();
-    const list = cur.filter((r) => (planQ === "all" || r.q === planQ) && r.name.toLowerCase().includes(planQuery.toLowerCase())).sort((a, b) => a.qorder - b.qorder || a.name.localeCompare(b.name));
+    const list = cur.filter((r) => (planQ === "all" || (planQ === "asym" ? hasImb(r) : r.q === planQ)) && r.name.toLowerCase().includes(planQuery.toLowerCase())).sort((a, b) => a.qorder - b.qorder || a.name.localeCompare(b.name));
     if (!list.length) box.appendChild(el("div", "muted", "No players match."));
     list.forEach((r) => {
-      const { base, fix, adj } = planFor(r);
+      const { base, fix, notes, adj } = planFor(r);
       const c = el("article", "plan"); c.style.setProperty("--qc", css(base.color)); c.id = "plan-" + r.name.replace(/\W+/g, "-");
       const h = el("div", "ph"); const left = el("div"); const nm = el("div", "pn", r.name); nm.onclick = () => openPlayer(r.name); left.appendChild(nm);
-      const meta = el("div", "meta"); meta.appendChild(qPill(r.q)); meta.appendChild(bandPill(r.band)); left.appendChild(meta);
+      const meta = el("div", "meta"); meta.appendChild(qPill(r.q)); meta.appendChild(bandPill(r.band)); if (hasImb(r)) meta.appendChild(el("span", "pill p-mon", "Imbalance")); left.appendChild(meta);
       h.append(left, scoreBox(r)); c.appendChild(h);
-      c.appendChild(el("div", "focus", base.focus));
-      const a = el("div", "adj " + adj[0], adj[1]); c.appendChild(a);
+      const goal = el("div", "focus"); goal.appendChild(el("b", "", "Goal: ")); goal.append(base.goal); c.appendChild(goal);
+      c.appendChild(el("div", "adj " + adj[0], adj[1]));
       const sec = (title, items) => { const s = el("div", "ex"); s.appendChild(el("h5", "", title)); const ul = el("ul"); items.forEach(([n, rx, why]) => { const li = el("li"); const l = el("div"); l.appendChild(el("b", "", n)); l.appendChild(el("span", "why", why)); li.append(l, el("span", "rx", rx)); ul.appendChild(li); }); s.appendChild(ul); c.appendChild(s); };
-      sec(`Primary — ${base.name}`, base.ex);
-      if (fix.length) sec("Corrective — from his test", fix);
-      else { const s = el("div", "ex"); s.appendChild(el("h5", "", "Corrective — from his test")); s.appendChild(el("div", "muted", "No asymmetry or countermovement-speed issues above the thresholds.")); c.appendChild(s); }
-      const notes = r.flags.filter((f) => f.short.startsWith("BW") || /rep/.test(f.short)); if (notes.length) c.appendChild(el("div", "muted", notes.map((f) => f.text).join(" "))).style.cssText = "font-size:12.5px;margin-top:10px";
+      sec("Squat pattern — pick 1–2 per session", base.squat);
+      sec("Hinge pattern — pick 1–2 per session", base.hinge);
+      if (fix.length || notes.length) {
+        const s = el("div", "ex imb"); s.appendChild(el("h5", "", "Imbalance work — add 2 per session"));
+        notes.forEach((n) => s.appendChild(el("div", "imbnote", n)));
+        if (fix.length) { const ul = el("ul"); fix.forEach(([n, rx, why]) => { const li = el("li"); const l = el("div"); l.appendChild(el("b", "", n)); l.appendChild(el("span", "why", why)); li.append(l, el("span", "rx", rx)); ul.appendChild(li); }); s.appendChild(ul); }
+        c.appendChild(s);
+      } else { const s = el("div", "ex"); s.appendChild(el("h5", "", "Imbalance work")); s.appendChild(el("div", "muted", "Left and right legs are within 10% — no extra single-leg work needed.")); c.appendChild(s); }
+      const rn = r.flags.filter((f) => f.short.startsWith("BW") || /rep/.test(f.short)); if (rn.length) { const n = el("div", "muted", rn.map((f) => f.text).join(" ")); n.style.cssText = "font-size:12.5px;margin-top:10px"; c.appendChild(n); }
       box.appendChild(c);
     });
+  }
+  const hasImb = (r) => r.decel_abs > 10 || r.conc_abs > 10 || r.land_abs > 15;
+
+  // ---------- COACH REPORT ----------
+  const RSTAT = {
+    ready: { word: "Ready to go", short: "Green", rgb: [28, 127, 71], bg: [229, 243, 235], cls: "p-ready", todo: "Normal practice." },
+    mon: { word: "Keep an eye on", short: "Yellow", rgb: [154, 106, 0], bg: [255, 243, 214], cls: "p-mon", todo: "Normal practice. Watch his workload and how he moves." },
+    fat: { word: "Lighter day", short: "Red", rgb: [184, 50, 42], bg: [251, 230, 228], cls: "p-fat", todo: "Keep jumping and sprinting lower today. Check in on how he feels." },
+    none: { word: "No score yet", short: "Gray", rgb: [93, 104, 121], bg: [240, 243, 247], cls: "p-none", todo: "Not enough tests to compare yet." }
+  };
+  function vsNormal(r) {
+    if (r.bw_flag) return "Retest needed";
+    if (r.perf == null) return "First test - sets his normal";
+    const sc = r.score;
+    return sc >= 9 ? "Better than his normal" : sc >= 7 ? "About his normal" : sc >= 5 ? "A bit below his normal" : "Well below his normal";
+  }
+  function plainNotes(r) {
+    const n = [], side = (v) => (v > 0 ? "left" : "right");
+    if (r.land_abs > 15) n.push(`Lands harder on his ${side(r.land)} leg`);
+    if (r.conc_abs > 15) n.push(`Pushes off harder with his ${side(r.conc)} leg`);
+    if (r.decel_abs > 15) n.push(`Leans on his ${side(r.decel)} leg when stopping`);
+    if (r.reps != null && r.reps < 3) n.push(`Only ${r.reps} good jump${r.reps > 1 ? "s" : ""} - retest next week`);
+    if (r.bw_flag) n.push("Scale reading looked off - retest");
+    return n;
+  }
+  function reportData() {
+    const t = curTeam(), cur = curRows();
+    const rows = cur.slice().sort((a, b) => (a.score ?? 99) - (b.score ?? 99) || a.name.localeCompare(b.name)).map((r) => ({ r, st: RSTAT[r.band], vs: vsNormal(r), notes: plainNotes(r) }));
+    const count = (b) => cur.filter((r) => r.band === b).length;
+    const lines = [];
+    if (t.bw_issue) lines.push("The scale readings on this test looked off for most players, so treat this week's numbers with caution and plan to retest.");
+    else if (t.ref) {
+      const up = (v) => v > 0.005, jh = t.jh_chg / (t.jh - t.jh_chg), rs = t.rsi_chg;
+      if (jh > 0.01 && up(rs)) lines.push("As a team, players are jumping higher and getting off the floor quicker than the last test. That's a good sign.");
+      else if (jh <= 0.01 && up(rs)) lines.push("As a team, players jumped a little lower but got off the floor quicker than the last test. That is not a sign of tiredness.");
+      else if (jh > 0.01) lines.push("As a team, players jumped a bit higher but were slower getting off the floor than the last test.");
+      else lines.push("As a team, players are jumping lower and slower than the last test. The group may be carrying some fatigue.");
+    } else lines.push("This is the first test on file. It sets each player's normal, so scores start next week.");
+    const watch = rows.filter((x) => x.r.band === "fat" || (x.r.score != null && x.r.score <= 5) || x.notes.some((n) => /Lands|Pushes|Leans/.test(n)));
+    return { t, cur, rows, counts: { ready: count("ready"), mon: count("mon"), fat: count("fat"), none: count("none") }, lines, watch };
+  }
+  const watchText = (x) => {
+    const bits = [x.vs === "Well below his normal" || x.vs === "A bit below his normal" ? `Jumping ${x.vs.toLowerCase().replace("his normal", "his normal")}.` : null, ...x.notes.map((n) => n + ".")].filter(Boolean);
+    return { said: bits.join(" ") || x.vs + ".", todo: x.r.band === "fat" ? RSTAT.fat.todo : x.notes.some((n) => /Lands|Pushes|Leans/.test(n)) ? "Fine to practice. Strength staff will add extra single-leg work." : x.st.todo };
+  };
+
+  function renderReport() {
+    const D = reportData(), p = $("paper"); p.replaceChildren();
+    const hd = el("div", "rp-head"); hd.appendChild(el("div", "rp-kicker", "ETSU MEN'S BASKETBALL")); const hr = el("div", "rp-hrow"); hr.append(el("div", "rp-title", "Jump Test Report"), el("div", "rp-date", dLong(date))); hd.appendChild(hr); p.appendChild(hd);
+    const q = el("div", "rp-sec"); q.appendChild(el("h4", "", "The quick version"));
+    const tiles = el("div", "rp-tiles");
+    ["ready", "mon", "fat", "none"].forEach((b) => { if (b === "none" && !D.counts.none) return; const tl = el("div", "rp-tile " + RSTAT[b].cls); tl.append(el("div", "rp-n", String(D.counts[b])), el("div", "", RSTAT[b].word)); tiles.appendChild(tl); });
+    q.appendChild(tiles); D.lines.forEach((l) => q.appendChild(el("p", "", l))); p.appendChild(q);
+    const ts = el("div", "rp-sec"); ts.appendChild(el("h4", "", "Every player"));
+    const tb = el("table", "rp-table"); const th = el("tr"); ["Player", "Today", "Score", "Compared to his normal", "Notes"].forEach((x) => th.appendChild(el("th", "", x))); const thead = el("thead"); thead.appendChild(th); tb.appendChild(thead);
+    const body = el("tbody"); D.rows.forEach((x) => { const tr = el("tr"); tr.appendChild(el("td", "rp-name", x.r.name)); const s = el("td"); s.appendChild(el("span", "pill " + x.st.cls, x.st.word)); tr.appendChild(s); tr.appendChild(el("td", "", x.r.score == null ? "-" : `${x.r.score}/10`)); tr.appendChild(el("td", "", x.vs)); tr.appendChild(el("td", "", x.notes.join(". ") || "-")); body.appendChild(tr); }); tb.appendChild(body);
+    ts.appendChild(tb); p.appendChild(ts);
+    if (D.watch.length) { const ws = el("div", "rp-sec"); ws.appendChild(el("h4", "", "Players to keep an eye on")); D.watch.forEach((x) => { const w = watchText(x), d = el("div", "rp-watch"); d.style.borderLeftColor = `rgb(${x.st.rgb.join(",")})`; const top = el("div"); top.appendChild(el("b", "", x.r.name)); top.append(` - ${x.st.word}`); d.append(top, el("div", "", w.said)); const td = el("div", "muted"); td.appendChild(el("b", "", "What to do: ")); td.append(w.todo); d.appendChild(td); ws.appendChild(d); }); p.appendChild(ws); }
+    const k = el("div", "rp-sec rp-key"); k.appendChild(el("h4", "", "How to read this"));
+    [["ready", "Score 8-10. Fresh and jumping like himself."], ["mon", "Score 5-7. A little below his best. Normal practice, keep an eye on him."], ["fat", "Score 1-4. Legs are tired. Lighter day on jumping and sprinting."]].forEach(([b, t]) => { const d = el("div"); d.append(el("span", "pill " + RSTAT[b].cls, RSTAT[b].word), " " + t); k.appendChild(d); });
+    k.appendChild(el("p", "muted", "Each player does a few max-effort jumps on the force plates. The score compares him to his own normal from earlier weeks, not to his teammates. 7 means he's jumping like his usual self."));
+    p.appendChild(k);
+  }
+
+  function pdfSafe(s) { return String(s).replace(/[–—]/g, "-").replace(/[·•]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7E]/g, ""); }
+  function buildPDF() {
+    if (!window.jspdf) { toast("The PDF tool didn't load. Check your internet connection and refresh."); return null; }
+    const D = reportData(), { jsPDF } = window.jspdf, doc = new jsPDF({ unit: "pt", format: "letter" });
+    const PW = 612, PH = 792, M = 40, CW = PW - 2 * M, NAVY = [4, 30, 66], GOLD = [255, 199, 44], INK = [14, 26, 43], MUTED = [93, 104, 121], LINE = [225, 229, 236];
+    let y = 0, page = 1;
+    const T = (s) => pdfSafe(s);
+    const font = (sz, st = "normal", col = INK) => { doc.setFont("helvetica", st); doc.setFontSize(sz); doc.setTextColor(...col); };
+    const footer = () => { font(8.5, "normal", MUTED); doc.text(T(`ETSU MBB Jump Test Report - ${dLong(date)}`), M, PH - 22); doc.text(`Page ${page}`, PW - M, PH - 22, { align: "right" }); };
+    const need = (h) => { if (y + h > PH - 46) { footer(); doc.addPage(); page++; y = 40; return true; } return false; };
+    // header
+    doc.setFillColor(...NAVY); doc.rect(0, 0, PW, 78, "F"); doc.setFillColor(...GOLD); doc.rect(0, 78, PW, 4, "F");
+    font(9, "bold", GOLD); doc.text("ETSU MEN'S BASKETBALL", M, 30);
+    font(24, "bold", [255, 255, 255]); doc.text("Jump Test Report", M, 58);
+    font(12, "normal", [205, 215, 230]); doc.text(T(dLong(date)), PW - M, 58, { align: "right" });
+    y = 108;
+    // quick version
+    font(14, "bold"); doc.text("The quick version", M, y); y += 14;
+    const bands = ["ready", "mon", "fat", "none"].filter((b) => b !== "none" || D.counts.none), tw = (CW - (bands.length - 1) * 10) / bands.length;
+    bands.forEach((b, i) => { const x = M + i * (tw + 10), S = RSTAT[b]; doc.setFillColor(...S.bg); doc.roundedRect(x, y, tw, 58, 6, 6, "F"); doc.setFillColor(...S.rgb); doc.rect(x, y, 5, 58, "F"); font(26, "bold", S.rgb); doc.text(String(D.counts[b]), x + 16, y + 32); font(10, "bold", S.rgb); doc.text(T(S.word), x + 16, y + 48); });
+    y += 76;
+    font(11, "normal"); D.lines.forEach((l) => { const w = doc.splitTextToSize(T(l), CW); doc.text(w, M, y); y += w.length * 14 + 4; });
+    y += 8;
+    // table
+    const cols = [["Player", 118], ["Today", 92], ["Score", 44], ["Compared to his normal", 122], ["Notes", CW - 118 - 92 - 44 - 122]];
+    const drawHead = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 22, "F"); font(9, "bold", [255, 255, 255]); let x = M; cols.forEach(([h, w]) => { doc.text(h, x + 6, y + 14.5); x += w; }); y += 22; };
+    need(60); font(14, "bold"); doc.text("Every player", M, y); y += 10; drawHead();
+    D.rows.forEach((row, i) => {
+      font(9.5, "normal"); const notes = doc.splitTextToSize(T(row.notes.join(". ") || "-"), cols[4][1] - 12), vs = doc.splitTextToSize(T(row.vs), cols[3][1] - 12);
+      const h = Math.max(24, 10 + Math.max(notes.length, vs.length) * 11.5);
+      if (need(h)) drawHead();
+      if (i % 2) { doc.setFillColor(247, 249, 251); doc.rect(M, y, CW, h, "F"); }
+      doc.setDrawColor(...LINE); doc.line(M, y + h, M + CW, y + h);
+      let x = M; const mid = y + 15.5;
+      font(10, "bold"); doc.text(T(row.r.name), x + 6, mid); x += cols[0][1];
+      const S = row.st; doc.setFillColor(...S.bg); font(8.5, "bold", S.rgb); const pw = doc.getTextWidth(S.word) + 14; doc.roundedRect(x + 5, y + 6, pw, 14, 7, 7, "F"); doc.text(S.word, x + 12, y + 16); x += cols[1][1];
+      font(10, "bold", row.r.score == null ? MUTED : S.rgb); doc.text(row.r.score == null ? "-" : `${row.r.score}/10`, x + 6, mid); x += cols[2][1];
+      font(9.5, "normal"); doc.text(vs, x + 6, mid); x += cols[3][1];
+      font(9.5, "normal", row.notes.length ? INK : MUTED); doc.text(notes, x + 6, mid);
+      y += h;
+    });
+    y += 22;
+    // watch list
+    if (D.watch.length) {
+      need(60); font(14, "bold"); doc.text("Players to keep an eye on", M, y); y += 12;
+      D.watch.forEach((x) => {
+        const w = watchText(x); font(10, "normal"); const said = doc.splitTextToSize(T(w.said), CW - 24), todo = doc.splitTextToSize(T("What to do: " + w.todo), CW - 24);
+        const h = 26 + said.length * 13 + todo.length * 13; need(h + 8);
+        doc.setFillColor(...x.st.bg); doc.roundedRect(M, y, CW, h, 6, 6, "F"); doc.setFillColor(...x.st.rgb); doc.rect(M, y, 5, h, "F");
+        font(11, "bold"); doc.text(T(x.r.name), M + 16, y + 17); const nw = doc.getTextWidth(T(x.r.name)); font(10, "bold", x.st.rgb); doc.text(T("  -  " + x.st.word), M + 16 + nw, y + 17);
+        font(10, "normal"); doc.text(said, M + 16, y + 32); font(10, "normal", MUTED); doc.text(todo, M + 16, y + 32 + said.length * 13);
+        y += h + 8;
+      });
+      y += 12;
+    }
+    // key
+    need(120); font(14, "bold"); doc.text("How to read this", M, y); y += 16;
+    [["ready", "Score 8-10. Fresh and jumping like himself."], ["mon", "Score 5-7. A little below his best. Normal practice, keep an eye on him."], ["fat", "Score 1-4. Legs are tired. Lighter day on jumping and sprinting."]].forEach(([b, t]) => {
+      const S = RSTAT[b]; doc.setFillColor(...S.bg); font(8.5, "bold", S.rgb); const pw = doc.getTextWidth(S.word) + 14; doc.roundedRect(M, y - 10, pw, 14, 7, 7, "F"); doc.text(S.word, M + 7, y); font(10, "normal"); doc.text(t, M + 104, y); y += 20;
+    });
+    font(9.5, "normal", MUTED); const fine = doc.splitTextToSize("Each player does a few max-effort jumps on the force plates. The score compares him to his own normal from earlier weeks, not to his teammates. 7 means he's jumping like his usual self.", CW); doc.text(fine, M, y + 4);
+    footer();
+    return doc;
+  }
+  function downloadPDF() {
+    const doc = buildPDF(); if (!doc) return;
+    const blob = doc.output("blob"), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `ETSU-MBB-Jump-Report-${date}.pdf`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   // ---------- READINESS ----------
@@ -843,7 +1035,7 @@ body.dragging .dropveil{display:grid}
     const ok = saveLocal(); date = [...dates].sort().pop(); refresh();
     toast(`Added ${added} jumps across ${dates.size} test date${dates.size > 1 ? "s" : ""}.${ok ? " Saved in this browser — upload to GitHub to share." : " This browser can't keep them after you close the page."}`);
   }
-  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "report", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -860,6 +1052,7 @@ body.dragging .dropveil{display:grid}
   ["roster", "dtable"].forEach((id) => { const t = $(id); t.addEventListener("click", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr) openPlayer(tr.dataset.name); }); t.addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr && e.key === "Enter") openPlayer(tr.dataset.name); }); });
   $("planSearch").addEventListener("input", (e) => { planQuery = e.target.value; renderPlans(); });
   $("printBtn").addEventListener("click", () => { $("v-plans").classList.add("print"); window.print(); setTimeout(() => $("v-plans").classList.remove("print"), 500); });
+  $("pdfBtn").addEventListener("click", downloadPDF);
   $("dClose").addEventListener("click", closeDrawer); $("scrim").addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
   $("exportBtn").addEventListener("click", () => {
