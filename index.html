@@ -239,6 +239,7 @@ body.dragging .dropveil{display:grid}
   <a href="#plans" data-v="plans">Exercise plans</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
   <a href="#report" data-v="report">Coach report</a>
+  <a href="#player-report" data-v="player-report">Player reports</a>
   <a href="#data" data-v="data">Data &amp; uploads</a>
 </div></nav>
 
@@ -316,6 +317,21 @@ body.dragging .dropveil{display:grid}
     <div class="pagehead"><div><h2>Coach report</h2><p>A one-page snapshot for the coaching staff: where each player lands on the quadrant, his bodyweight and his readiness score. It uses the test date picked at the top of the page.</p></div>
       <button class="btn btn-gold" id="pdfBtn">⬇ Download PDF</button></div>
     <div class="paper" id="paper"></div>
+  </section>
+
+  <!-- PLAYER REPORT -->
+  <section class="view" id="v-player-report">
+    <div class="pagehead"><div><h2>Player reports</h2><p>A one-page report to hand each player: his jumper type, readiness, where he ranks, his trend, left–right balance, what he's doing well, what to work on, and a goal for next test.</p></div></div>
+    <div class="toolbar">
+      <button class="btn" id="prPrev" aria-label="Previous player">‹</button>
+      <select id="prSel" aria-label="Player" style="min-width:200px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select>
+      <button class="btn" id="prNext" aria-label="Next player">›</button>
+      <span id="prSummary" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
+      <span style="flex:1"></span>
+      <button class="btn btn-gold" id="prDl">⬇ Download PDF</button>
+      <button class="btn" id="prAll">⬇ All players (one PDF)</button>
+    </div>
+    <div class="paper" id="prPaper"></div>
   </section>
 
   <!-- DATA -->
@@ -586,6 +602,7 @@ body.dragging .dropveil{display:grid}
     if (view === "plans") renderPlans();
     if (view === "readiness") renderReadiness();
     if (view === "report") renderReport();
+    if (view === "player-report") renderPlayerReport();
   }
 
   // ---------- HOME ----------
@@ -744,7 +761,7 @@ body.dragging .dropveil{display:grid}
   const QTINT = { elite: [251, 243, 222], power: [229, 238, 248], quick: [240, 234, 248], found: [238, 240, 243] };
   const SRGB = (s) => (s == null ? [93, 104, 121] : s >= 8 ? [28, 127, 71] : s >= 5 ? [176, 122, 0] : [184, 50, 42]);
   const LB = (kg) => (kg == null ? null : kg * 2.20462);
-  function pdfSafe(s) { return String(s).replace(/[–—]/g, "-").replace(/[·•]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7E]/g, ""); }
+  function pdfSafe(s) { return String(s).replace(/×/g, "x").replace(/[–—]/g, "-").replace(/[·•]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[^\x20-\x7E]/g, ""); }
 
   function buildPDF() {
     if (!window.jspdf) { toast("The PDF tool didn't load. Check your internet connection and refresh."); return null; }
@@ -839,6 +856,196 @@ body.dragging .dropveil{display:grid}
     const blob = doc.output("blob"), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = `ETSU-MBB-Jump-Snapshot-${date}.pdf`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
+
+  // ---------- PLAYER REPORT ----------
+  let prName = null, prURL = null;
+  const IN = (cm) => cm / 2.54;
+  function playerFacts(r) {
+    const cur = curRows(), t = curTeam(), n = cur.length;
+    const rank = (k) => 1 + cur.filter((o) => o[k] > r[k]).length;
+    const jhRank = rank("jh"), rsiRank = rank("rsi"), third = Math.max(1, Math.ceil(n / 3));
+    const side = (v) => (v > 0 ? "left" : "right"), pctS = (v) => `${Math.round(Math.abs(v))}%`;
+    const hist = A.rows.filter((o) => o.name === r.name && o.date <= date).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const prev = hist.filter((o) => o.date < r.date && !o.bw_flag).pop();
+    const good = [], work = [];
+    if (r.q === "elite") good.push("Explosive Elite: you jump high AND get off the floor fast.");
+    if (jhRank <= third) good.push(`One of the team's highest jumpers (#${jhRank} of ${n}).`);
+    if (rsiRank <= third) good.push(`One of the quickest off the floor (#${rsiRank} of ${n}).`);
+    if (r.score != null && r.score >= 9) good.push("Jumping above your normal this week.");
+    if (r.rsi_chg != null && r.rsi_chg >= 0.05) good.push(`Explosiveness up ${Math.round(r.rsi_chg * 100)}% from your normal.`);
+    if (r.jh_chg != null && r.jh_chg >= 0.03) good.push(`Jump height up ${Math.round(r.jh_chg * 100)}% from your normal.`);
+    if (r.max_asym != null && r.max_asym <= 10) good.push("Both legs are working evenly.");
+    else [["decel", "Stopping", 10], ["conc", "Pushing off", 10], ["land", "Landing", 15]].forEach(([k, lab, lim]) => { if (r[k] != null && Math.abs(r[k]) <= lim) good.push(`${lab} is balanced between your legs.`); });
+    if (jhRank > third && jhRank <= Math.ceil(n / 2)) good.push(`Above the team middle in jump height (#${jhRank} of ${n}).`);
+    if (rsiRank > third && rsiRank <= Math.ceil(n / 2)) good.push(`Above the team middle in explosiveness (#${rsiRank} of ${n}).`);
+    if (r.bw != null && prev && prev.bw != null && Math.abs(r.bw - prev.bw) <= 1.5) good.push("Bodyweight holding steady.");
+    if (r.reps >= 3) good.push("Gave 3 clean, max-effort jumps.");
+    if (!good.length) good.push("Every test adds to your baseline - keep showing up.");
+    const imb = [["decel", "Stopping", (v) => `Even out how you stop - you lean ${pctS(v)} more on your ${side(v)} leg.`, 10], ["conc", "Push-off", (v) => `Push off with both legs - your ${side(v)} leg is doing ${pctS(v)} more.`, 10], ["land", "Landing", (v) => `Land evenly - you land ${pctS(v)} harder on your ${side(v)} leg.`, 15]]
+      .filter(([k, , , lim]) => r[k] != null && Math.abs(r[k]) > lim).sort((a, b) => Math.abs(r[b[0]]) - Math.abs(r[a[0]]));
+    imb.slice(0, 2).forEach(([k, , fn]) => work.push(fn(r[k])));
+    work.push({ elite: "Stay consistent - keep your strength up all season.", power: "Get off the floor faster: quick dip, fast snap up.", quick: "Get stronger to jump higher - your speed is already there.", found: "Build overall leg strength - it raises both height and speed." }[r.q]);
+    if (r.epv != null && Math.abs(r.epv) < 1.1) work.push("Drop into your jump faster before you explode up.");
+    if (r.reps != null && r.reps < 3) work.push("Get 3 clean jumps in every test.");
+    if (r.score != null && r.score <= 4) work.push("Recover well this week: sleep, eat, hydrate.");
+    // goals
+    const goals = [];
+    const step = (cur0, team0) => Math.max(cur0 * 1.03, Math.min(team0, cur0 * 1.08)), rsiGoal = step(r.rsi, t.rsi), jhGoal = step(IN(r.jh), IN(t.jh));
+    if (r.q === "elite") goals.push(`Hold ${f1(IN(r.jh))}+ in and an explosiveness of ${f2(r.rsi)}+`);
+    if (r.q === "power" || r.q === "found") goals.push(`Explosiveness of ${f2(Math.ceil(rsiGoal * 100) / 100)}+`);
+    if (r.q === "quick" || r.q === "found") goals.push(`Jump height of ${f1(Math.ceil(jhGoal * 10) / 10)}+ in`);
+    if (imb.length) goals.push(`${imb[0][1]} difference under 10%`);
+    const plan = planFor(r), lift = [plan.base.squat[0], plan.base.squat[1], plan.base.hinge[0], plan.fix[0] || plan.base.hinge[1]].filter(Boolean);
+    return { r, t, n, jhRank, rsiRank, hist, prev, good: good.slice(0, 3), work: work.filter(Boolean).slice(0, 3), goals: goals.slice(0, 2), lift };
+  }
+  function readyWord(r) {
+    if (r.bw_flag) return ["Retest", "The scale reading looked off this test"];
+    if (r.score == null) return ["Baseline set", "Your score starts next test"];
+    return r.score >= 9 ? ["Above your normal", "Fresh and jumping better than usual"] : r.score >= 7 ? ["Right at your normal", "Jumping like your usual self"] : r.score >= 5 ? ["A bit below your normal", "Slightly off your usual jump"] : ["Well below your normal", "Legs are carrying some fatigue"];
+  }
+
+  function drawPlayerPage(doc, name) {
+    const r = curRows().find((o) => o.name === name); if (!r) return;
+    const F = playerFacts(r), t = F.t, cur = curRows();
+    const PW = 612, M = 36, CW = PW - 2 * M, NAVY = [4, 30, 66], GOLD = [255, 199, 44], INK = [14, 26, 43], MUTED = [93, 104, 121], LINE = [225, 229, 236], SOFT = [244, 246, 249];
+    const T = pdfSafe, font = (sz, st = "normal", col = INK) => { doc.setFont("helvetica", st); doc.setFontSize(sz); doc.setTextColor(...col); };
+    const QC = QRGB[r.q], QT = QTINT[r.q], SC = SRGB(r.score);
+    const card = (x, y, w, h, fill = [255, 255, 255]) => { doc.setFillColor(...fill); doc.setDrawColor(...LINE); doc.setLineWidth(0.7); doc.roundedRect(x, y, w, h, 6, 6, "FD"); };
+    const title = (s, x, y) => { font(8, "bold", MUTED); doc.text(T(s.toUpperCase()), x, y); };
+
+    // header
+    doc.setFillColor(...NAVY); doc.rect(0, 0, PW, 74, "F"); doc.setFillColor(...QC); doc.rect(0, 74, PW, 4, "F");
+    font(8, "bold", GOLD); doc.text("ETSU MEN'S BASKETBALL  -  PLAYER JUMP REPORT", M, 22);
+    font(24, "bold", [255, 255, 255]); doc.text(T(r.name), M, 52);
+    font(10, "normal", [205, 215, 230]); doc.text(T(dLong(date)), PW - M, 34, { align: "right" });
+    if (r.bw != null) doc.text(`${Math.round(LB(r.bw))} lb`, PW - M, 50, { align: "right" });
+    font(8.5, "normal", [170, 185, 210]); doc.text(`Test ${F.hist.length} on file`, PW - M, 64, { align: "right" });
+
+    // row 1: type + readiness
+    let y = 92;
+    const w1 = 300, w2 = CW - w1 - 10;
+    card(M, y, w1, 96, QT); doc.setFillColor(...QC); doc.rect(M, y + 6, 4, 84, "F");
+    title("Your jumper type", M + 16, y + 18);
+    font(19, "bold", QC); doc.text(Q[r.q].name, M + 16, y + 42);
+    font(9, "normal", INK); doc.text(doc.splitTextToSize(T(Q[r.q].desc), w1 - 32), M + 16, y + 58);
+    const x2 = M + w1 + 10; card(x2, y, w2, 96);
+    title("Readiness", x2 + 14, y + 18);
+    font(34, "bold", SC); doc.text(r.score == null ? "-" : String(r.score), x2 + 14, y + 54);
+    if (r.score != null) { const sw = doc.getTextWidth(String(r.score)); font(12, "bold", MUTED); doc.text("/10", x2 + 16 + sw, y + 54); }
+    const [rw, rs] = readyWord(r); font(10.5, "bold", SC); doc.text(T(rw), x2 + 86, y + 40); font(8.5, "normal", MUTED); doc.text(T(rs), x2 + 86, y + 53);
+    const segW = (w2 - 28 - 9 * 3) / 10; for (let s = 1; s <= 10; s++) { doc.setFillColor(...(r.score != null && s <= r.score ? SC : [229, 233, 239])); doc.roundedRect(x2 + 14 + (s - 1) * (segW + 3), y + 66, segW, 9, 1.5, 1.5, "F"); }
+    font(7, "normal", MUTED); doc.text("1 = tired", x2 + 14, y + 86); doc.text("7 = your normal", x2 + 14 + (segW + 3) * 6 + segW / 2, y + 86, { align: "center" }); doc.text("10 = fresh", x2 + w2 - 14, y + 86, { align: "right" });
+
+    // row 2: rank strips
+    y += 108; title("Where you rank on the team", M, y + 2); y += 8;
+    const strip = (x, w, label, val, txt, team, all, rank, unitFmt) => {
+      card(x, y, w, 62, SOFT);
+      font(9, "bold"); doc.text(T(label), x + 12, y + 16);
+      font(15, "bold", QC); doc.text(T(txt), x + w - 12, y + 18, { align: "right" });
+      font(8, "normal", MUTED); doc.text(`#${rank} of ${F.n}  -  team avg ${unitFmt(team)}`, x + w - 12, y + 29, { align: "right" });
+      const lo = d3.min(all), hi = d3.max(all), bx = x + 12, bw = w - 24, by = y + 44, S = d3.scaleLinear([lo, hi], [bx, bx + bw]);
+      doc.setFillColor(229, 233, 239); doc.roundedRect(bx, by - 3, bw, 6, 3, 3, "F");
+      all.forEach((v) => { doc.setFillColor(180, 188, 200); doc.circle(S(v), by, 2, "F"); });
+      doc.setDrawColor(...MUTED); doc.setLineWidth(1); doc.line(S(team), by - 7, S(team), by + 7);
+      doc.setFillColor(...QC); doc.setDrawColor(255, 255, 255); doc.setLineWidth(1.5); doc.circle(S(val), by, 5, "FD");
+      font(6.5, "normal", MUTED); doc.text("lowest", bx, by + 14); doc.text("highest", bx + bw, by + 14, { align: "right" }); doc.text("team avg", S(team), by + 14, { align: "center" });
+    };
+    const sw2 = (CW - 10) / 2;
+    strip(M, sw2, "Jump height", r.jh, `${f1(IN(r.jh))} in`, t.jh, cur.map((o) => o.jh), F.jhRank, (v) => `${f1(IN(v))} in`);
+    strip(M + sw2 + 10, sw2, "Explosiveness (RSI-mod)", r.rsi, f2(r.rsi), t.rsi, cur.map((o) => o.rsi), F.rsiRank, f2);
+    y += 74;
+
+    // row 3: quadrant + trends
+    const qh = 168, qw = 262; card(M, y, qw, qh); title("Your spot on the quadrant", M + 12, y + 15);
+    const qx0 = M + 12, qx1 = M + qw - 12, qy0 = y + 22, qy1 = y + qh - 18;
+    const ex = d3.extent(cur, (o) => o.rsi), ey = d3.extent(cur, (o) => o.jh), px = Math.max((ex[1] - ex[0]) * 0.12, 0.02), py = Math.max((ey[1] - ey[0]) * 0.12, 1);
+    const X = d3.scaleLinear([Math.min(ex[0], t.rsi) - px, Math.max(ex[1], t.rsi) + px], [qx0, qx1]), Y = d3.scaleLinear([Math.min(ey[0], t.jh) - py, Math.max(ey[1], t.jh) + py], [qy1, qy0]);
+    const mx = X(t.rsi), my = Y(t.jh);
+    [["power", qx0, qy0, mx - qx0, my - qy0], ["elite", mx, qy0, qx1 - mx, my - qy0], ["found", qx0, my, mx - qx0, qy1 - my], ["quick", mx, my, qx1 - mx, qy1 - my]].forEach(([q, zx, zy, zw, zh]) => { doc.setFillColor(...QTINT[q]); doc.rect(zx, zy, Math.max(0, zw), Math.max(0, zh), "F"); });
+    doc.setDrawColor(160, 168, 180); doc.setLineWidth(0.6); doc.setLineDashPattern([2.5, 2.5], 0); doc.line(mx, qy0, mx, qy1); doc.line(qx0, my, qx1, my); doc.setLineDashPattern([], 0);
+    [["power", qx0 + 4, qy0 + 9, "left"], ["elite", qx1 - 4, qy0 + 9, "right"], ["found", qx0 + 4, qy1 - 4, "left"], ["quick", qx1 - 4, qy1 - 4, "right"]].forEach(([q, lx, ly, al]) => { font(6.5, "bold", QRGB[q]); doc.text(Q[q].name.toUpperCase(), lx, ly, { align: al }); });
+    cur.filter((o) => o.name !== r.name).forEach((o) => { doc.setFillColor(176, 184, 196); doc.circle(X(o.rsi), Y(o.jh), 2.4, "F"); });
+    const hx = X(r.rsi), hy = Y(r.jh); doc.setFillColor(...QC); doc.setDrawColor(255, 255, 255); doc.setLineWidth(1.6); doc.circle(hx, hy, 5.5, "FD");
+    font(7.5, "bold"); const lw = doc.getTextWidth("YOU"), lx = hx + 8 + lw < qx1 ? hx + 8 : hx - 8 - lw; doc.setFillColor(255, 255, 255); doc.roundedRect(lx - 2, hy - 6.5, lw + 4, 9, 2, 2, "F"); doc.text("YOU", lx, hy + 1);
+    font(6.5, "normal", MUTED); doc.text("Quicker  >", qx1, qy1 + 10, { align: "right" }); doc.text("Higher  >", qx0 - 3, qy1, { angle: 90 });
+    // trends
+    const tx = M + qw + 10, tw = CW - qw - 10, th = (qh - 8) / 2;
+    const trend = (ty, label, key, fmt, conv) => {
+      card(tx, ty, tw, th); title(label, tx + 12, ty + 14);
+      const pts = F.hist.map((o) => ({ d: o.date, v: conv(o[key]), off: o.bw_flag })), tdates = A.team.filter((x) => x.date <= date).map((x) => x.date);
+      if (pts.length < 2) { font(8.5, "normal", MUTED); doc.text("Your trend line starts after your second test.", tx + 12, ty + th / 2 + 8); return; }
+      const team = A.team.filter((x) => x.date <= date).map((x) => ({ d: x.date, v: conv(x[key]) }));
+      const vals = pts.concat(team).map((p) => p.v), e = d3.extent(vals), pad = (e[1] - e[0]) * 0.2 || 1;
+      const cx0 = tx + 34, cx1 = tx + tw - 40, cy0 = ty + 22, cy1 = ty + th - 16;
+      const XS = d3.scalePoint(tdates, [cx0, cx1]).padding(0.1), YS = d3.scaleLinear([e[0] - pad, e[1] + pad], [cy1, cy0]).nice(3);
+      YS.ticks(3).forEach((v) => { doc.setDrawColor(236, 239, 243); doc.setLineWidth(0.5); doc.line(cx0, YS(v), cx1, YS(v)); font(6.5, "normal", MUTED); doc.text(fmt(v), cx0 - 4, YS(v) + 2, { align: "right" }); });
+      tdates.forEach((d) => { font(6.5, "normal", MUTED); doc.text(T(dShort(d)), XS(d), cy1 + 10, { align: "center" }); });
+      doc.setDrawColor(170, 178, 190); doc.setLineWidth(1); doc.setLineDashPattern([2.5, 2], 0); for (let i = 1; i < team.length; i++) doc.line(XS(team[i - 1].d), YS(team[i - 1].v), XS(team[i].d), YS(team[i].v)); doc.setLineDashPattern([], 0);
+      doc.setDrawColor(...QC); doc.setLineWidth(2); for (let i = 1; i < pts.length; i++) doc.line(XS(pts[i - 1].d), YS(pts[i - 1].v), XS(pts[i].d), YS(pts[i].v));
+      pts.forEach((p) => { doc.setFillColor(...(p.off ? [255, 255, 255] : QC)); doc.setDrawColor(...QC); doc.setLineWidth(1.4); doc.circle(XS(p.d), YS(p.v), 2.8, "FD"); });
+      const last = pts[pts.length - 1]; font(8, "bold", QC); doc.text(fmt(last.v), XS(last.d) + 6, YS(last.v) + 3);
+      font(6.5, "normal", MUTED); doc.text("- - team avg", tx + tw - 12, ty + 14, { align: "right" });
+    };
+    trend(y, "Jump height (in)", "jh", f1, IN);
+    trend(y + th + 8, "Explosiveness (RSI-mod)", "rsi", f2, (v) => v);
+    y += qh + 12;
+
+    // row 4: balance
+    const bh = 92; card(M, y, CW, bh); title("Left-right balance", M + 12, y + 15);
+    font(7.5, "normal", MUTED); doc.text("Under 10% is balanced.", M + CW - 12, y + 15, { align: "right" });
+    const bx0 = M + 120, bx1 = M + CW - 120, bmid = (bx0 + bx1) / 2, bS = (bx1 - bx0) / 2 / 40;
+    font(7, "bold", MUTED); doc.text("LEFT", bx0, y + 28); doc.text("RIGHT", bx1, y + 28, { align: "right" });
+    [["Stopping", "decel"], ["Pushing off", "conc"], ["Landing", "land"]].forEach(([lab, k], i) => {
+      const ry = y + 40 + i * 18, v = r[k];
+      font(9, "bold"); doc.text(lab, M + 12, ry + 3);
+      doc.setFillColor(...[229, 244, 235]); doc.rect(bmid - 10 * bS, ry - 5, 20 * bS, 10, "F");
+      doc.setFillColor(240, 242, 246); doc.rect(bx0, ry - 5, bmid - 10 * bS - bx0, 10, "F"); doc.rect(bmid + 10 * bS, ry - 5, bx1 - bmid - 10 * bS, 10, "F");
+      doc.setDrawColor(...MUTED); doc.setLineWidth(0.8); doc.line(bmid, ry - 7, bmid, ry + 7);
+      if (v == null) { font(8, "normal", MUTED); doc.text("-", M + CW - 12, ry + 3, { align: "right" }); return; }
+      const a = Math.min(40, Math.abs(v)), col = Math.abs(v) > 15 ? [184, 50, 42] : Math.abs(v) > 10 ? [176, 122, 0] : [28, 127, 71];
+      doc.setFillColor(...col); if (v > 0) doc.rect(bmid - a * bS, ry - 3, a * bS, 6, "F"); else doc.rect(bmid, ry - 3, a * bS, 6, "F");
+      font(8.5, "bold", col); doc.text(Math.abs(v) < 0.5 ? "Even" : `${Math.round(Math.abs(v))}% more ${v > 0 ? "left" : "right"}`, M + CW - 12, ry + 3, { align: "right" });
+    });
+    y += bh + 12;
+
+    // row 5: good / work on / weight room
+    const cw3 = (CW - 20) / 3, ch = 150;
+    const listCard = (x, label, items, dot) => {
+      card(x, y, cw3, ch); title(label, x + 12, y + 16); let ly = y + 32;
+      items.forEach((s) => { const lines = doc.splitTextToSize(T(s), cw3 - 34); if (ly + lines.length * 10.5 > y + ch - 6) return; doc.setFillColor(...dot); doc.circle(x + 15, ly - 3, 2.6, "F"); font(8.5, "normal"); doc.text(lines, x + 23, ly); ly += lines.length * 10.5 + 7; });
+    };
+    listCard(M, "What you're doing well", F.good, [28, 127, 71]);
+    listCard(M + cw3 + 10, "What to work on", F.work, [201, 138, 0]);
+    const wx = M + 2 * (cw3 + 10); card(wx, y, cw3, ch); title("Your weight room focus", wx + 12, y + 16);
+    let ly = y + 32; F.lift.forEach(([nm, rx]) => { font(8.5, "bold"); const l = doc.splitTextToSize(T(nm), cw3 - 24); doc.text(l, wx + 12, ly); ly += l.length * 10; font(7.5, "normal", MUTED); doc.text(T(rx), wx + 12, ly); ly += 14; });
+    y += ch + 12;
+
+    // goal
+    doc.setFillColor(...NAVY); doc.roundedRect(M, y, CW, 34, 6, 6, "F"); font(8, "bold", GOLD); doc.text("NEXT TEST GOAL", M + 14, y + 21);
+    font(11, "bold", [255, 255, 255]); doc.text(T(F.goals.join("   |   ") || "Beat today's numbers."), M + 112, y + 21.5);
+    // footer
+    font(7, "normal", MUTED); doc.text(T("Explosiveness (RSI-mod) = how high you jump divided by how long it takes you to get off the floor. Readiness compares you to your own normal, not your teammates."), M, 772, { maxWidth: CW });
+  }
+  function buildPlayerPDF(names) {
+    if (!window.jspdf) { toast("The PDF tool didn't load. Check your internet connection and refresh."); return null; }
+    const doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+    names.forEach((n, i) => { if (i) doc.addPage(); drawPlayerPage(doc, n); });
+    return doc;
+  }
+  const prNames = () => curRows().map((r) => r.name).sort();
+  function renderPlayerReport() {
+    const names = prNames(); if (!names.includes(prName)) prName = names[0];
+    const sel = $("prSel"); sel.replaceChildren(...names.map((n) => new Option(n))); sel.value = prName;
+    const r = curRows().find((o) => o.name === prName), sum = $("prSummary"); sum.replaceChildren();
+    if (r) { sum.appendChild(qPill(r.q)); sum.append(" "); sum.appendChild(bandPill(r.band)); sum.append(" "); sum.appendChild(el("span", "muted", r.score == null ? "No readiness score yet" : `Readiness ${r.score}/10`)); }
+    const p = $("prPaper"); p.replaceChildren();
+    const doc = buildPlayerPDF([prName]); if (!doc) { p.appendChild(el("div", "empty", "The PDF tool didn't load. Check your internet connection and refresh.")); return; }
+    if (prURL) URL.revokeObjectURL(prURL); prURL = URL.createObjectURL(doc.output("blob"));
+    const o = document.createElement("object"); o.data = prURL + "#toolbar=0&view=FitH"; o.type = "application/pdf"; o.className = "pdfview";
+    const fb = el("div", "empty"); fb.append("This browser can't preview PDFs here. Use "); fb.appendChild(el("b", "", "Download PDF")); fb.append(" above."); o.appendChild(fb); p.appendChild(o);
+  }
+  function savePDF(doc, fname) { const a = document.createElement("a"); a.href = URL.createObjectURL(doc.output("blob")); a.download = fname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+  function stepPlayer(d) { const n = prNames(), i = n.indexOf(prName); prName = n[(i + d + n.length) % n.length]; renderPlayerReport(); }
 
   // ---------- READINESS ----------
   function renderReadiness() {
@@ -947,6 +1154,7 @@ body.dragging .dropveil{display:grid}
     if (hs.length) { const b3 = mk("Readiness"); lineChart(b3, dates, [{ name: "Readiness", color: css("--c3"), pts: hs.map((o) => ({ d: o.date, v: o.score })) }], { fmt: d3.format("d"), title: "1–10", sel: date, domain: [1, 10] }); }
     const pl = el("button", "btn", "Open his exercise plan →"); pl.onclick = () => { closeDrawer(); planQ = "all"; planQuery = ""; $("planSearch").value = ""; location.hash = "plans"; setTimeout(() => { const t = document.getElementById("plan-" + name.replace(/\W+/g, "-")); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
     b.appendChild(pl);
+    const rp = el("button", "btn", "Open his player report →"); rp.onclick = () => { closeDrawer(); prName = name; location.hash = "player-report"; }; b.appendChild(rp);
     $("drawer").classList.add("open"); $("scrim").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("dClose").focus();
   }
   function closeDrawer() { $("drawer").classList.remove("open"); $("scrim").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); }
@@ -1006,7 +1214,7 @@ body.dragging .dropveil{display:grid}
     const ok = saveLocal(); date = [...dates].sort().pop(); refresh();
     toast(`Added ${added} jumps across ${dates.size} test date${dates.size > 1 ? "s" : ""}.${ok ? " Saved in this browser — upload to GitHub to share." : " This browser can't keep them after you close the page."}`);
   }
-  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "report", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "report", "player-report", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -1024,6 +1232,11 @@ body.dragging .dropveil{display:grid}
   $("planSearch").addEventListener("input", (e) => { planQuery = e.target.value; renderPlans(); });
   $("printBtn").addEventListener("click", () => { $("v-plans").classList.add("print"); window.print(); setTimeout(() => $("v-plans").classList.remove("print"), 500); });
   $("pdfBtn").addEventListener("click", downloadPDF);
+  $("prSel").addEventListener("change", (e) => { prName = e.target.value; renderPlayerReport(); });
+  $("prPrev").addEventListener("click", () => stepPlayer(-1));
+  $("prNext").addEventListener("click", () => stepPlayer(1));
+  $("prDl").addEventListener("click", () => { const d = buildPlayerPDF([prName]); if (d) savePDF(d, `${prName.replace(/\W+/g, "-")}-Jump-Report-${date}.pdf`); });
+  $("prAll").addEventListener("click", () => { const d = buildPlayerPDF(prNames()); if (d) savePDF(d, `ETSU-MBB-Player-Reports-${date}.pdf`); });
   $("dClose").addEventListener("click", closeDrawer); $("scrim").addEventListener("click", closeDrawer);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
   $("exportBtn").addEventListener("click", () => {
