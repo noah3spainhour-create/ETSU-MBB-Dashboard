@@ -321,7 +321,7 @@ body.dragging .dropveil{display:grid}
 
   <!-- PLAYER REPORT -->
   <section class="view" id="v-player-report">
-    <div class="pagehead"><div><h2>Player reports</h2><p>A one-page report to hand each player: his jumper type, readiness, where he ranks, his trend, left–right balance, what he's doing well, what to work on, and a goal for next test.</p></div></div>
+    <div class="pagehead"><div><h2>Player reports</h2><p>A one-page report to hand each player: his jumper type, readiness, where he ranks, his trend, left–right balance, what he's doing well, what to work on, a plain-language summary and a goal for next test.</p></div></div>
     <div class="toolbar">
       <button class="btn" id="prPrev" aria-label="Previous player">‹</button>
       <select id="prSel" aria-label="Player" style="min-width:200px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select>
@@ -891,10 +891,10 @@ body.dragging .dropveil{display:grid}
     // goals
     const goals = [];
     const step = (cur0, team0) => Math.max(cur0 * 1.03, Math.min(team0, cur0 * 1.08)), rsiGoal = step(r.rsi, t.rsi), jhGoal = step(IN(r.jh), IN(t.jh));
-    if (r.q === "elite") goals.push(`Hold ${f1(IN(r.jh))}+ in and an explosiveness of ${f2(r.rsi)}+`);
+    if (r.q === "elite") goals.push(`Hold ${f1(IN(r.jh))}+ in jump height and ${f2(r.rsi)}+ explosiveness`);
     if (r.q === "power" || r.q === "found") goals.push(`Explosiveness of ${f2(Math.ceil(rsiGoal * 100) / 100)}+`);
     if (r.q === "quick" || r.q === "found") goals.push(`Jump height of ${f1(Math.ceil(jhGoal * 10) / 10)}+ in`);
-    if (imb.length) goals.push(`${imb[0][1]} difference under 10%`);
+    if (imb.length) goals.push(`${imb[0][1]} difference under 10%`.replace(/^Push-off/, "Push-off").replace(/^(\w)/, (c) => c));
     const plan = planFor(r), lift = [plan.base.squat[0], plan.base.squat[1], plan.base.hinge[0], plan.fix[0] || plan.base.hinge[1]].filter(Boolean);
     return { r, t, n, jhRank, rsiRank, hist, prev, good: good.slice(0, 3), work: work.filter(Boolean).slice(0, 3), goals: goals.slice(0, 2), lift };
   }
@@ -904,6 +904,22 @@ body.dragging .dropveil{display:grid}
     return r.score >= 9 ? ["Above your normal", "Fresh and jumping better than usual"] : r.score >= 7 ? ["Right at your normal", "Jumping like your usual self"] : r.score >= 5 ? ["A bit below your normal", "Slightly off your usual jump"] : ["Well below your normal", "Legs are carrying some fatigue"];
   }
 
+  function playerSummary(F) {
+    const r = F.r, n = F.n, out = [];
+    out.push({ elite: "You're an Explosive Elite jumper: you jump high and you get off the floor fast. That's the best profile to have.",
+      power: "You're a Power Loader: you jump high, but you take a little longer than most to get off the floor. Getting quicker is your biggest opportunity.",
+      quick: "You're a Quick Spring: you get off the floor fast, but you're not jumping as high as you could yet. Getting stronger will add height.",
+      found: "You're a Foundation Builder: your jump height and your speed off the floor are both below the team average right now. That means you have the most room to grow, and getting stronger will help both." }[r.q]);
+    out.push(`On this test you ranked #${F.jhRank} of ${n} in jump height and #${F.rsiRank} of ${n} in explosiveness.`);
+    if (r.bw_flag) out.push("The scale reading looked off this time, so we'll retest before giving you a readiness score.");
+    else if (r.score == null) out.push("This was your first test, so it sets your normal. Your readiness score starts next week.");
+    else out.push(`Your readiness was ${r.score}/10, which means you were ${readyWord(r)[0].toLowerCase()}${r.score <= 4 ? " - focus on sleep, food and water this week" : ""}.`);
+    const imb = [["stopping", r.decel, 10], ["pushing off", r.conc, 10], ["landing", r.land, 15]].filter(([, v, l]) => v != null && Math.abs(v) > l).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    if (imb.length) { const [what, v] = imb[0]; out.push(`The biggest thing to clean up is ${what}: your ${v > 0 ? "left" : "right"} leg is doing about ${Math.round(Math.abs(v))}% more than your ${v > 0 ? "right" : "left"}.`); }
+    else if (r.max_asym != null) out.push("Your left and right legs are working evenly - keep it that way.");
+    if (F.goals.length) out.push(`Next test, aim for ${F.goals.map((g) => g.charAt(0).toLowerCase() + g.slice(1)).join(" and ")}.`);
+    return out.join(" ");
+  }
   function drawPlayerPage(doc, name) {
     const r = curRows().find((o) => o.name === name); if (!r) return;
     const F = playerFacts(r), t = F.t, cur = curRows();
@@ -955,40 +971,27 @@ body.dragging .dropveil{display:grid}
     strip(M + sw2 + 10, sw2, "Explosiveness (RSI-mod)", r.rsi, f2(r.rsi), t.rsi, cur.map((o) => o.rsi), F.rsiRank, f2);
     y += 74;
 
-    // row 3: quadrant + trends
-    const qh = 168, qw = 262; card(M, y, qw, qh); title("Your spot on the quadrant", M + 12, y + 15);
-    const qx0 = M + 12, qx1 = M + qw - 12, qy0 = y + 22, qy1 = y + qh - 18;
-    const ex = d3.extent(cur, (o) => o.rsi), ey = d3.extent(cur, (o) => o.jh), px = Math.max((ex[1] - ex[0]) * 0.12, 0.02), py = Math.max((ey[1] - ey[0]) * 0.12, 1);
-    const X = d3.scaleLinear([Math.min(ex[0], t.rsi) - px, Math.max(ex[1], t.rsi) + px], [qx0, qx1]), Y = d3.scaleLinear([Math.min(ey[0], t.jh) - py, Math.max(ey[1], t.jh) + py], [qy1, qy0]);
-    const mx = X(t.rsi), my = Y(t.jh);
-    [["power", qx0, qy0, mx - qx0, my - qy0], ["elite", mx, qy0, qx1 - mx, my - qy0], ["found", qx0, my, mx - qx0, qy1 - my], ["quick", mx, my, qx1 - mx, qy1 - my]].forEach(([q, zx, zy, zw, zh]) => { doc.setFillColor(...QTINT[q]); doc.rect(zx, zy, Math.max(0, zw), Math.max(0, zh), "F"); });
-    doc.setDrawColor(160, 168, 180); doc.setLineWidth(0.6); doc.setLineDashPattern([2.5, 2.5], 0); doc.line(mx, qy0, mx, qy1); doc.line(qx0, my, qx1, my); doc.setLineDashPattern([], 0);
-    [["power", qx0 + 4, qy0 + 9, "left"], ["elite", qx1 - 4, qy0 + 9, "right"], ["found", qx0 + 4, qy1 - 4, "left"], ["quick", qx1 - 4, qy1 - 4, "right"]].forEach(([q, lx, ly, al]) => { font(6.5, "bold", QRGB[q]); doc.text(Q[q].name.toUpperCase(), lx, ly, { align: al }); });
-    cur.filter((o) => o.name !== r.name).forEach((o) => { doc.setFillColor(176, 184, 196); doc.circle(X(o.rsi), Y(o.jh), 2.4, "F"); });
-    const hx = X(r.rsi), hy = Y(r.jh); doc.setFillColor(...QC); doc.setDrawColor(255, 255, 255); doc.setLineWidth(1.6); doc.circle(hx, hy, 5.5, "FD");
-    font(7.5, "bold"); const lw = doc.getTextWidth("YOU"), lx = hx + 8 + lw < qx1 ? hx + 8 : hx - 8 - lw; doc.setFillColor(255, 255, 255); doc.roundedRect(lx - 2, hy - 6.5, lw + 4, 9, 2, 2, "F"); doc.text("YOU", lx, hy + 1);
-    font(6.5, "normal", MUTED); doc.text("Quicker  >", qx1, qy1 + 10, { align: "right" }); doc.text("Higher  >", qx0 - 3, qy1, { angle: 90 });
-    // trends
-    const tx = M + qw + 10, tw = CW - qw - 10, th = (qh - 8) / 2;
-    const trend = (ty, label, key, fmt, conv) => {
-      card(tx, ty, tw, th); title(label, tx + 12, ty + 14);
+    // row 3: trends (full width)
+    const th = 112, tw = (CW - 10) / 2;
+    const trend = (tx, ty, label, key, fmt, conv) => {
+      card(tx, ty, tw, th); title(label, tx + 12, ty + 15);
       const pts = F.hist.map((o) => ({ d: o.date, v: conv(o[key]), off: o.bw_flag })), tdates = A.team.filter((x) => x.date <= date).map((x) => x.date);
-      if (pts.length < 2) { font(8.5, "normal", MUTED); doc.text("Your trend line starts after your second test.", tx + 12, ty + th / 2 + 8); return; }
+      if (pts.length < 2) { font(8.5, "normal", MUTED); doc.text("Your trend line starts after your second test.", tx + 12, ty + th / 2 + 6); return; }
       const team = A.team.filter((x) => x.date <= date).map((x) => ({ d: x.date, v: conv(x[key]) }));
       const vals = pts.concat(team).map((p) => p.v), e = d3.extent(vals), pad = (e[1] - e[0]) * 0.2 || 1;
-      const cx0 = tx + 34, cx1 = tx + tw - 40, cy0 = ty + 22, cy1 = ty + th - 16;
+      const cx0 = tx + 36, cx1 = tx + tw - 40, cy0 = ty + 26, cy1 = ty + th - 18;
       const XS = d3.scalePoint(tdates, [cx0, cx1]).padding(0.1), YS = d3.scaleLinear([e[0] - pad, e[1] + pad], [cy1, cy0]).nice(3);
       YS.ticks(3).forEach((v) => { doc.setDrawColor(236, 239, 243); doc.setLineWidth(0.5); doc.line(cx0, YS(v), cx1, YS(v)); font(6.5, "normal", MUTED); doc.text(fmt(v), cx0 - 4, YS(v) + 2, { align: "right" }); });
-      tdates.forEach((d) => { font(6.5, "normal", MUTED); doc.text(T(dShort(d)), XS(d), cy1 + 10, { align: "center" }); });
+      tdates.forEach((d) => { font(6.5, "normal", MUTED); doc.text(T(dShort(d)), XS(d), cy1 + 11, { align: "center" }); });
       doc.setDrawColor(170, 178, 190); doc.setLineWidth(1); doc.setLineDashPattern([2.5, 2], 0); for (let i = 1; i < team.length; i++) doc.line(XS(team[i - 1].d), YS(team[i - 1].v), XS(team[i].d), YS(team[i].v)); doc.setLineDashPattern([], 0);
       doc.setDrawColor(...QC); doc.setLineWidth(2); for (let i = 1; i < pts.length; i++) doc.line(XS(pts[i - 1].d), YS(pts[i - 1].v), XS(pts[i].d), YS(pts[i].v));
       pts.forEach((p) => { doc.setFillColor(...(p.off ? [255, 255, 255] : QC)); doc.setDrawColor(...QC); doc.setLineWidth(1.4); doc.circle(XS(p.d), YS(p.v), 2.8, "FD"); });
       const last = pts[pts.length - 1]; font(8, "bold", QC); doc.text(fmt(last.v), XS(last.d) + 6, YS(last.v) + 3);
-      font(6.5, "normal", MUTED); doc.text("- - team avg", tx + tw - 12, ty + 14, { align: "right" });
+      font(6.5, "normal", MUTED); doc.text("- - team avg", tx + tw - 12, ty + 15, { align: "right" });
     };
-    trend(y, "Jump height (in)", "jh", f1, IN);
-    trend(y + th + 8, "Explosiveness (RSI-mod)", "rsi", f2, (v) => v);
-    y += qh + 12;
+    trend(M, y, "Your jump height (in)", "jh", f1, IN);
+    trend(M + tw + 10, y, "Your explosiveness (RSI-mod)", "rsi", f2, (v) => v);
+    y += th + 12;
 
     // row 4: balance
     const bh = 92; card(M, y, CW, bh); title("Left-right balance", M + 12, y + 15);
@@ -1008,21 +1011,25 @@ body.dragging .dropveil{display:grid}
     });
     y += bh + 12;
 
-    // row 5: good / work on / weight room
-    const cw3 = (CW - 20) / 3, ch = 150;
+    // row 5: good / work on
+    const cw2 = (CW - 10) / 2, ch = 104;
     const listCard = (x, label, items, dot) => {
-      card(x, y, cw3, ch); title(label, x + 12, y + 16); let ly = y + 32;
-      items.forEach((s) => { const lines = doc.splitTextToSize(T(s), cw3 - 34); if (ly + lines.length * 10.5 > y + ch - 6) return; doc.setFillColor(...dot); doc.circle(x + 15, ly - 3, 2.6, "F"); font(8.5, "normal"); doc.text(lines, x + 23, ly); ly += lines.length * 10.5 + 7; });
+      card(x, y, cw2, ch); title(label, x + 12, y + 16); let ly = y + 32;
+      items.forEach((s) => { const lines = doc.splitTextToSize(T(s), cw2 - 34); if (ly + lines.length * 10.5 > y + ch - 4) return; doc.setFillColor(...dot); doc.circle(x + 15, ly - 3, 2.6, "F"); font(8.5, "normal"); doc.text(lines, x + 23, ly); ly += lines.length * 10.5 + 6; });
     };
     listCard(M, "What you're doing well", F.good, [28, 127, 71]);
-    listCard(M + cw3 + 10, "What to work on", F.work, [201, 138, 0]);
-    const wx = M + 2 * (cw3 + 10); card(wx, y, cw3, ch); title("Your weight room focus", wx + 12, y + 16);
-    let ly = y + 32; F.lift.forEach(([nm, rx]) => { font(8.5, "bold"); const l = doc.splitTextToSize(T(nm), cw3 - 24); doc.text(l, wx + 12, ly); ly += l.length * 10; font(7.5, "normal", MUTED); doc.text(T(rx), wx + 12, ly); ly += 14; });
+    listCard(M + cw2 + 10, "What to work on", F.work, [201, 138, 0]);
     y += ch + 12;
 
+    // summary
+    font(9.5, "normal"); const sumLines = doc.splitTextToSize(T(playerSummary(F)), CW - 32), sh = 30 + sumLines.length * 13;
+    doc.setFillColor(...QT); doc.setDrawColor(...LINE); doc.setLineWidth(0.7); doc.roundedRect(M, y, CW, sh, 6, 6, "FD"); doc.setFillColor(...QC); doc.rect(M, y + 6, 4, sh - 12, "F");
+    title("Your summary", M + 16, y + 17); font(9.5, "normal"); doc.text(sumLines, M + 16, y + 32, { lineHeightFactor: 1.35 });
+    y += sh + 10;
+
     // goal
-    doc.setFillColor(...NAVY); doc.roundedRect(M, y, CW, 34, 6, 6, "F"); font(8, "bold", GOLD); doc.text("NEXT TEST GOAL", M + 14, y + 21);
-    font(11, "bold", [255, 255, 255]); doc.text(T(F.goals.join("   |   ") || "Beat today's numbers."), M + 112, y + 21.5);
+    doc.setFillColor(...NAVY); doc.roundedRect(M, y, CW, 32, 6, 6, "F"); font(8, "bold", GOLD); doc.text("NEXT TEST GOAL", M + 14, y + 20);
+    font(11, "bold", [255, 255, 255]); doc.text(T(F.goals.join("   |   ") || "Beat today's numbers."), M + 112, y + 20.5);
     // footer
     font(7, "normal", MUTED); doc.text(T("Explosiveness (RSI-mod) = how high you jump divided by how long it takes you to get off the floor. Readiness compares you to your own normal, not your teammates."), M, 772, { maxWidth: CW });
   }
