@@ -37,11 +37,14 @@ button,select,input{font:inherit;color:inherit}
 header.top{background:var(--navy);color:#fff}
 .brand{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:16px 0}
 .logo{display:flex;align-items:center;gap:14px}
-.mark{width:44px;height:44px;border-radius:10px;background:var(--gold);color:var(--navy);display:grid;place-items:center;font:700 20px "Barlow Condensed",sans-serif;letter-spacing:.5px}
+.mark{min-width:44px;padding:0 8px;height:44px;border-radius:10px;background:var(--gold);color:var(--navy);display:grid;place-items:center;font:700 20px "Barlow Condensed",sans-serif;letter-spacing:.5px}
 h1{margin:0;font-size:26px;font-weight:700;line-height:1;letter-spacing:.3px}
 .tag{font-size:13px;color:#B9C6DA;margin-top:3px}
 .hctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .hctl label{font-size:12.5px;color:#B9C6DA}
+.hctl label.btn-gold{color:var(--navy);font-size:13.5px}
+.logo{min-width:0}.logo>div:last-child{min-width:0}
+@media(max-width:560px){h1{font-size:20px}.mark{height:38px;min-width:38px;font-size:16px;flex-shrink:0}}
 header select{padding:7px 10px;border-radius:8px;border:1px solid #2F4A73;background:var(--navy2);color:#fff}
 .btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;border:1px solid var(--line);padding:8px 14px;cursor:pointer;background:var(--panel);font-weight:600;font-size:13.5px}
 .btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
@@ -161,7 +164,7 @@ td .pname{font-weight:600}
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(4,15,35,.45);z-index:40;display:none}
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:var(--bg);z-index:41;transform:translateX(100%);transition:transform .22s ease;overflow-y:auto;box-shadow:-10px 0 30px rgba(0,0,0,.2)}
-.drawer.open{transform:none}.scrim.open{display:block}
+.drawer{visibility:hidden;transition:transform .22s ease,visibility 0s linear .22s}.drawer.open{transform:none;visibility:visible;transition:transform .22s ease}.scrim.open{display:block}
 .dhead{background:var(--navy);color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;position:sticky;top:0;z-index:2}
 .dhead h3{margin:0;font-size:22px}
 .dhead .x{background:transparent;border:1px solid #2F4A73;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
@@ -209,6 +212,29 @@ body.dragging .dropveil{display:grid}
 .rp-watch{border-left:5px solid;border-radius:8px;background:#F7F9FB;padding:10px 14px;margin-bottom:8px;font-size:14px;display:grid;gap:3px}
 .rp-key{padding-bottom:20px}.rp-key>div{margin:6px 0;font-size:14px}
 @media(max-width:640px){.rp-table{font-size:12.5px}.rp-sec{padding:14px 16px 4px}}
+.xh-in{font:inherit;width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--fg)}
+.xh-date{width:140px}
+.xh-notes{resize:vertical;min-height:36px;line-height:1.35}
+.xh-table{min-width:860px}
+.xh-table td{vertical-align:top;white-space:normal;padding:8px 8px}
+.xh-treat{display:flex;flex-wrap:wrap;gap:5px;align-items:center;width:100%;min-height:36px;padding:5px 28px 5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;text-align:left;position:relative}
+.xh-treat:hover{border-color:var(--accent)}
+.xh-caret{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.xh-chip{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;color:#fff;background:var(--tc)}
+.xh-pop{position:absolute;z-index:50;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:8px;width:220px}
+.xh-opt{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:14px}
+.xh-opt:hover{background:var(--soft)}
+.xh-opt i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.xh-opt input{width:16px;height:16px;accent-color:var(--navy)}
+.xh-del{border:1px solid var(--line);background:transparent;border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--muted)}
+.xh-del:hover{color:var(--bad);border-color:var(--bad)}
+.xh-picker{border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:14px;margin-top:12px}
+.xh-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px}
+.xh-pick-grid label{display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-size:14px}
+.xh-pick-grid label.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.xh-pick-grid label.dis{opacity:.5;cursor:default}
+.xh-lead{display:grid;grid-template-columns:22px 1fr auto 40px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.xh-lead .num{text-align:right;font-weight:700}
 [hidden]{display:none!important}
 
 @media print{
@@ -240,6 +266,7 @@ body.dragging .dropveil{display:grid}
   <a href="#readiness" data-v="readiness">Readiness</a>
   <a href="#report" data-v="report">Coach report</a>
   <a href="#player-report" data-v="player-report">Player reports</a>
+  <a href="#extra" data-v="extra">Extra hours</a>
   <a href="#data" data-v="data">Data &amp; uploads</a>
 </div></nav>
 
@@ -334,6 +361,44 @@ body.dragging .dropveil{display:grid}
     <div class="paper" id="prPaper"></div>
   </section>
 
+  <!-- EXTRA HOURS -->
+  <section class="view" id="v-extra">
+    <div class="pagehead"><div><h2>Open weight room · extra hours</h2><p>Log who came in, what they worked on, and any notes. Pick a date, add the players who showed up, then choose one or more treatments for each.</p></div>
+      <div class="toolbar"><button class="btn" id="xhCsv">⬇ Download CSV</button><label class="btn" for="xhImport" tabindex="0">⬆ Import CSV</label><input type="file" id="xhImport" accept=".csv,text/csv"></div></div>
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">Players on this date</div><div class="big" id="xh-k-today">0</div><div class="sub">selected date</div></div>
+      <div class="kpi"><div class="lbl">Players this week</div><div class="big" id="xh-k-week">0</div><div class="sub" id="xh-k-weeks"></div></div>
+      <div class="kpi"><div class="lbl">Total visits logged</div><div class="big" id="xh-k-total">0</div><div class="sub" id="xh-k-days"></div></div>
+    </div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between">
+        <div class="toolbar">
+          <div class="seg" id="xhViewSeg" role="group" aria-label="Show"><button data-v="date">One date</button><button data-v="all">All dates</button></div>
+          <span id="xhDateWrap" class="toolbar"><button class="btn" id="xhPrevD" aria-label="Previous day">‹</button><input type="date" id="xhDate" class="xh-in" style="width:auto"><button class="btn" id="xhNextD" aria-label="Next day">›</button><button class="btn" id="xhToday">Today</button></span>
+        </div>
+        <div class="toolbar"><button class="btn btn-gold" id="xhAddMany">＋ Add players</button><button class="btn" id="xhAddRow">＋ Add row</button></div>
+      </div>
+      <div class="xh-picker" id="xhPicker" hidden>
+        <div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><b>Who showed up?</b><span class="toolbar"><button class="btn" id="xhPickAll">Select all</button><button class="btn" id="xhPickNone">Clear</button></span></div>
+        <div class="xh-pick-grid" id="xhPickGrid"></div>
+        <div class="toolbar" style="margin-top:10px"><input class="xh-in" id="xhNewName" placeholder="Add a player not on the list…" style="max-width:260px"><button class="btn" id="xhNewAdd">Add name</button><span style="flex:1"></span><button class="btn" id="xhPickCancel">Cancel</button><button class="btn btn-gold" id="xhPickGo">Add to table</button></div>
+      </div>
+      <h3 id="xhTitle" style="margin:16px 0 10px"></h3>
+      <div class="tablebox"><table id="xhTable" class="xh-table"><thead><tr><th class="l" style="width:150px">Date</th><th class="l" style="width:220px">Player</th><th class="l" style="width:300px">Treatment</th><th class="l">Notes</th><th style="width:44px"></th></tr></thead><tbody></tbody></table></div>
+      <div class="empty" id="xhEmpty" style="padding:30px 16px">No one logged yet. Use <b>＋ Add players</b> to check people in.</div>
+      <div class="muted" id="xhSaved" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Treatments chosen</h3><p class="note">All logged visits. One visit can count toward several treatments.</p><div class="qmini" id="xhTreatBars"></div></div>
+      <div class="card"><h3>Most extra hours</h3><p class="note">Visits per player, all dates.</p><div id="xhLeaders"></div></div>
+    </div>
+    <div class="card"><h3>Saving and sharing</h3><div class="defs" style="margin-top:8px">
+      <div>Entries save automatically in <b>this browser</b>. Use the same computer and browser to keep adding to the log.</div>
+      <div>To back it up or share it with staff, click <b>Download CSV</b> (opens in Excel). To make it show for everyone on the site, upload that file to the GitHub <b>data</b> folder named <b>extra-hours.csv</b>. A new browser starts from that file.</div>
+      <div>To continue on another computer, use <b>Import CSV</b> with the latest download.</div>
+    </div></div>
+  </section>
+
   <!-- DATA -->
   <section class="view" id="v-data">
     <div class="pagehead"><div><h2>Data &amp; uploads</h2><p>Every test the dashboard is using, and how to add new weeks.</p></div></div>
@@ -379,6 +444,7 @@ body.dragging .dropveil{display:grid}
   <div class="dhead"><div><h3 id="dName"></h3><div class="tag" id="dSub"></div></div><button class="x" id="dClose" aria-label="Close">✕</button></div>
   <div class="dbody" id="dBody"></div>
 </aside>
+<div class="xh-pop" id="xhPop" hidden></div>
 <div class="toast" id="toast" role="status"></div>
 <div class="dropveil">Drop the ForceDecks CSV to add it</div>
 
@@ -588,14 +654,15 @@ body.dragging .dropveil{display:grid}
 
   function render() {
     const has = A.rows.length > 0;
-    $("empty").hidden = has || view === "data";
+    $("empty").hidden = has || view === "data" || view === "extra";
     const dates = A.team.map((t) => t.date);
     $("subline").textContent = has ? `Force plate CMJ monitoring · ${dates.length} test${dates.length > 1 ? "s" : ""} · ${new Set(A.rows.map((r) => r.name)).size} players` : "Force plate CMJ monitoring · no tests yet";
     if (has && !dates.includes(date)) date = dates[dates.length - 1];
     $("dateSel").replaceChildren(...dates.slice().reverse().map((d) => new Option(dLong(d), d))); if (has) $("dateSel").value = date;
-    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data")));
+    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra")));
     document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.v === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
     renderData();
+    if (view === "extra") { xhInit().then(renderExtra); }
     if (!has) return;
     if (view === "home") renderHome();
     if (view === "profiles") renderProfiles();
@@ -1209,6 +1276,109 @@ body.dragging .dropveil{display:grid}
   function sortRows(rows, k, dir) { return rows.slice().sort((a, b) => { const av = a[k], bv = b[k]; if (av == null && bv == null) return a.name.localeCompare(b.name); if (av == null) return 1; if (bv == null) return -1; return (typeof av === "string" ? av.localeCompare(bv) : av - bv) * dir || a.name.localeCompare(b.name); }); }
   function markSort(id) { const [k, dir] = sorts[id]; document.querySelectorAll(`#${id} th`).forEach((th) => th.setAttribute("aria-sort", th.querySelector("button").dataset.k === k ? (dir > 0 ? "ascending" : "descending") : "none")); }
 
+  // ================= EXTRA HOURS =================
+  const XH_KEY = "etsu-extra-hours-v1", XH_ROSTER_KEY = "etsu-extra-roster-v1";
+  const TREAT = [["Mobility", "#2D6FB5"], ["Stretch", "#1C7F47"], ["Conditioning", "#B8322A"], ["Extra Lift", "#C98A00"], ["Prehab/Rehab", "#7B4FB8"]];
+  const TCOL = Object.fromEntries(TREAT);
+  let xh = [], xhRoster = [], xhView = "date", xhDate = isoToday(), xhLoaded = false;
+  function isoToday() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  function xhSave() { try { localStorage.setItem(XH_KEY, JSON.stringify(xh)); localStorage.setItem(XH_ROSTER_KEY, JSON.stringify(xhRoster)); $("xhSaved").textContent = "Saved in this browser · " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); } catch (e) { $("xhSaved").textContent = "This browser can't save — download the CSV before closing."; } }
+  function rosterNames() { return [...new Set([...A.rows.map((r) => r.name), ...xhRoster, ...xh.map((e) => e.player).filter(Boolean)])].sort((a, b) => a.localeCompare(b)); }
+  function xhToCSV(list) {
+    const q = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    return [["Date", "Player", "Treatments", "Notes", "ID"].map(q).join(",")].concat(list.filter((e) => e.player).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.player.localeCompare(b.player))).map((e) => [e.date, e.player, e.treatments.join("; "), e.notes, e.id].map(q).join(","))).join("\n");
+  }
+  function xhFromCSV(text) {
+    const rows = parseCSV(text); if (rows.length < 2) return [];
+    const h = rows[0].map(norm), ix = (k) => h.indexOf(k);
+    const [di, pi, ti, ni, ii] = ["date", "player", "treatments", "notes", "id"].map(ix);
+    if (di < 0 || pi < 0) throw new Error("That file needs Date and Player columns.");
+    return rows.slice(1).map((r) => ({ id: (ii >= 0 && r[ii]) || uid(), date: toISO(r[di]) || r[di], player: String(r[pi] || "").trim(), treatments: ti >= 0 ? String(r[ti] || "").split(/[;,]/).map((s) => s.trim()).filter((s) => TCOL[s]) : [], notes: ni >= 0 ? r[ni] || "" : "" })).filter((e) => e.date && e.player);
+  }
+  async function xhInit() {
+    if (xhLoaded) return; xhLoaded = true;
+    try { xh = JSON.parse(localStorage.getItem(XH_KEY) || "null"); xhRoster = JSON.parse(localStorage.getItem(XH_ROSTER_KEY) || "[]"); } catch (e) { xh = null; }
+    if (!Array.isArray(xh)) { xh = []; try { const res = await fetch("data/extra-hours.csv", { cache: "no-store" }); if (res.ok) xh = xhFromCSV(await res.text()); } catch (e) { /* none */ } }
+  }
+
+  // treatment dropdown (one shared popover)
+  let popFor = null;
+  function closePop() { const p = $("xhPop"); if (p) p.hidden = true; popFor = null; }
+  function openPop(btn, entry) {
+    const p = $("xhPop"); popFor = entry.id; p.replaceChildren();
+    TREAT.forEach(([t, c]) => {
+      const lab = el("label", "xh-opt"); const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = entry.treatments.includes(t);
+      cb.onchange = () => { entry.treatments = cb.checked ? TREAT.map(([x]) => x).filter((x) => x === t || entry.treatments.includes(x)) : entry.treatments.filter((x) => x !== t); xhSave(); paintTreat(btn, entry); renderXHSummary(); };
+      const sw = el("i"); sw.style.background = c; lab.append(cb, sw, t); p.appendChild(lab);
+    });
+    const done = el("button", "btn", "Done"); done.style.cssText = "width:100%;margin-top:6px;justify-content:center"; done.onclick = closePop; p.appendChild(done);
+    const r = btn.getBoundingClientRect(); p.hidden = false;
+    p.style.left = Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - p.offsetWidth - 10) + "px"; p.style.top = window.scrollY + r.bottom + 4 + "px";
+  }
+  function paintTreat(btn, entry) {
+    btn.replaceChildren();
+    if (!entry.treatments.length) btn.appendChild(el("span", "muted", "Select treatment…"));
+    entry.treatments.forEach((t) => { const c = el("span", "xh-chip", t); c.style.setProperty("--tc", TCOL[t]); btn.appendChild(c); });
+    btn.appendChild(el("span", "xh-caret", "▾"));
+  }
+
+  function xhAdd(players) {
+    const have = new Set(xh.filter((e) => e.date === xhDate).map((e) => e.player)); let n = 0;
+    players.forEach((p) => { if (p && have.has(p)) return; xh.push({ id: uid(), date: xhDate, player: p || "", treatments: [], notes: "" }); n++; });
+    xhSave(); renderExtra(); return n;
+  }
+  function playerCell(e) {
+    const td = el("td", "l"); const sel = document.createElement("select"); sel.className = "xh-in";
+    sel.appendChild(new Option("Select player…", "")); rosterNames().forEach((n) => sel.appendChild(new Option(n, n))); sel.appendChild(new Option("＋ New player…", "__new"));
+    sel.value = e.player;
+    sel.onchange = () => {
+      if (sel.value !== "__new") { e.player = sel.value; xhSave(); renderExtra(); return; }
+      const inp = document.createElement("input"); inp.className = "xh-in"; inp.placeholder = "Type name, press Enter"; td.replaceChildren(inp); inp.focus();
+      const commit = () => { const v = inp.value.replace(/\s+/g, " ").trim(); if (v) { e.player = v; if (!xhRoster.includes(v)) xhRoster.push(v); xhSave(); } renderExtra(); };
+      inp.onkeydown = (k) => { if (k.key === "Enter") commit(); if (k.key === "Escape") renderExtra(); }; inp.onblur = commit;
+    };
+    td.appendChild(sel); return td;
+  }
+  function renderExtra() {
+    closePop();
+    $("xhDate").value = xhDate; document.querySelectorAll("#xhViewSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === xhView)));
+    $("xhDateWrap").style.visibility = xhView === "date" ? "visible" : "hidden";
+    const list = (xhView === "date" ? xh.filter((e) => e.date === xhDate) : xh.slice()).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : (a.player || "~").localeCompare(b.player || "~")));
+    $("xhTitle").textContent = xhView === "date" ? `Attendance · ${new Date(xhDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", year: "numeric" })}` : `All sessions · ${xh.length} entr${xh.length === 1 ? "y" : "ies"}`;
+    const tb = $("xhTable").querySelector("tbody"); tb.replaceChildren();
+    const dupes = new Set(); const seen = new Set(); xh.forEach((e) => { const k = e.date + "|" + e.player; if (e.player && seen.has(k)) dupes.add(k); seen.add(k); });
+    list.forEach((e) => {
+      const tr = el("tr");
+      const dtd = el("td", "l"); const di = document.createElement("input"); di.type = "date"; di.className = "xh-in xh-date"; di.value = e.date; di.onchange = () => { if (di.value) { e.date = di.value; xhSave(); renderExtra(); } }; dtd.appendChild(di); tr.appendChild(dtd);
+      const pc = playerCell(e); if (dupes.has(e.date + "|" + e.player)) { pc.appendChild(el("div", "warn", "Listed twice on this date")); pc.lastChild.style.fontSize = "12px"; } tr.appendChild(pc);
+      const ttd = el("td", "l"); const tb2 = el("button", "xh-treat"); tb2.type = "button"; paintTreat(tb2, e); tb2.onclick = (ev) => { ev.stopPropagation(); if (popFor === e.id) closePop(); else openPop(tb2, e); }; ttd.appendChild(tb2); tr.appendChild(ttd);
+      const ntd = el("td", "l"); const na = document.createElement("textarea"); na.className = "xh-in xh-notes"; na.rows = 1; na.placeholder = "Add a note…"; na.value = e.notes; let nt;
+      na.oninput = () => { e.notes = na.value; clearTimeout(nt); nt = setTimeout(xhSave, 400); }; ntd.appendChild(na); tr.appendChild(ntd);
+      const xtd = el("td"); const del = el("button", "xh-del", "✕"); del.title = "Remove row"; del.setAttribute("aria-label", "Remove row"); del.onclick = () => { if ((e.player || e.notes || e.treatments.length) && !confirm(`Remove ${e.player || "this row"}${e.date ? " on " + e.date : ""}?`)) return; xh = xh.filter((x) => x !== e); xhSave(); renderExtra(); }; xtd.appendChild(del); tr.appendChild(xtd);
+      tb.appendChild(tr);
+    });
+    $("xhEmpty").hidden = list.length > 0;
+    renderXHSummary();
+  }
+  function renderXHSummary() {
+    const now = new Date(xhDate + "T12:00:00"), day = (now.getDay() + 6) % 7, mon = new Date(now); mon.setDate(now.getDate() - day);
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const wk0 = iso(mon), wk1 = iso(new Date(mon.getTime() + 6 * 864e5));
+    const today = xh.filter((e) => e.date === xhDate && e.player), week = xh.filter((e) => e.date >= wk0 && e.date <= wk1 && e.player);
+    $("xh-k-today").textContent = new Set(today.map((e) => e.player)).size;
+    $("xh-k-week").textContent = new Set(week.map((e) => e.player)).size;
+    $("xh-k-weeks").textContent = `${week.length} visit${week.length === 1 ? "" : "s"} · week of ${new Date(wk0 + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+    $("xh-k-total").textContent = xh.filter((e) => e.player).length; $("xh-k-days").textContent = `${new Set(xh.map((e) => e.date)).size} session day${new Set(xh.map((e) => e.date)).size === 1 ? "" : "s"}`;
+    const tc = $("xhTreatBars"); tc.replaceChildren(); const tot = d3.sum(TREAT, ([t]) => xh.filter((e) => e.treatments.includes(t)).length) || 1;
+    TREAT.forEach(([t, c]) => { const n = xh.filter((e) => e.treatments.includes(t)).length, row = el("div", "r"); const lab = el("span", "qpill"); const i = el("i"); i.style.background = c; lab.append(i, t); const bar = el("div", "bar"), f = el("span"); f.style.width = (100 * n / tot) + "%"; f.style.background = c; bar.appendChild(f); row.append(lab, bar, el("span", "num", String(n))); tc.appendChild(row); });
+    const lb = $("xhLeaders"); lb.replaceChildren();
+    const counts = d3.rollups(xh.filter((e) => e.player), (g) => ({ n: g.length, last: d3.max(g, (e) => e.date) }), (e) => e.player).sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]));
+    if (!counts.length) lb.appendChild(el("div", "muted", "No visits logged yet."));
+    counts.slice(0, 10).forEach(([p, v], i) => { const d = el("div", "xh-lead"); d.append(el("span", "num muted", String(i + 1)), el("b", "", p), el("span", "muted", `last ${new Date(v.last + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`), el("span", "num", `${v.n}`)); lb.appendChild(d); });
+  }
+  function xhDownload() { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([xhToCSV(xh)], { type: "text/csv" })); a.download = "extra-hours.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
   // ================= events =================
   function refresh() { A = analyze(merged()); render(); }
   async function addFiles(files) {
@@ -1221,7 +1391,7 @@ body.dragging .dropveil{display:grid}
     const ok = saveLocal(); date = [...dates].sort().pop(); refresh();
     toast(`Added ${added} jumps across ${dates.size} test date${dates.size > 1 ? "s" : ""}.${ok ? " Saved in this browser — upload to GitHub to share." : " This browser can't keep them after you close the page."}`);
   }
-  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "report", "player-report", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "report", "player-report", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -1238,6 +1408,38 @@ body.dragging .dropveil{display:grid}
   ["roster", "dtable"].forEach((id) => { const t = $(id); t.addEventListener("click", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr) openPlayer(tr.dataset.name); }); t.addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr && e.key === "Enter") openPlayer(tr.dataset.name); }); });
   $("planSearch").addEventListener("input", (e) => { planQuery = e.target.value; renderPlans(); });
   $("printBtn").addEventListener("click", () => { $("v-plans").classList.add("print"); window.print(); setTimeout(() => $("v-plans").classList.remove("print"), 500); });
+  // extra hours events
+  const xhShift = (d) => { const t = new Date(xhDate + "T12:00:00"); t.setDate(t.getDate() + d); xhDate = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; renderExtra(); };
+  $("xhDate").addEventListener("change", (e) => { if (e.target.value) { xhDate = e.target.value; renderExtra(); } });
+  $("xhPrevD").addEventListener("click", () => xhShift(-1)); $("xhNextD").addEventListener("click", () => xhShift(1));
+  $("xhToday").addEventListener("click", () => { xhDate = isoToday(); xhView = "date"; renderExtra(); });
+  document.querySelectorAll("#xhViewSeg button").forEach((b) => b.addEventListener("click", () => { xhView = b.dataset.v; renderExtra(); }));
+  $("xhAddRow").addEventListener("click", () => { if (xhView !== "date") xhView = "date"; xhAdd([""]); });
+  let picks = new Set();
+  function paintPicker() {
+    const have = new Set(xh.filter((e) => e.date === xhDate).map((e) => e.player)), g = $("xhPickGrid"); g.replaceChildren();
+    rosterNames().forEach((n) => { const lab = el("label", have.has(n) ? "dis" : picks.has(n) ? "on" : ""); const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = have.has(n) || picks.has(n); cb.disabled = have.has(n);
+      cb.onchange = () => { cb.checked ? picks.add(n) : picks.delete(n); lab.className = cb.checked ? "on" : ""; $("xhPickGo").textContent = `Add ${picks.size || ""} to table`.replace("  ", " "); };
+      lab.append(cb, n + (have.has(n) ? " (logged)" : "")); g.appendChild(lab); });
+    if (!rosterNames().length) g.appendChild(el("div", "muted", "No players yet — type a name below."));
+    $("xhPickGo").textContent = picks.size ? `Add ${picks.size} to table` : "Add to table";
+  }
+  $("xhAddMany").addEventListener("click", () => { if (xhView !== "date") { xhView = "date"; renderExtra(); } picks = new Set(); $("xhPicker").hidden = !$("xhPicker").hidden; if (!$("xhPicker").hidden) paintPicker(); });
+  $("xhPickAll").addEventListener("click", () => { const have = new Set(xh.filter((e) => e.date === xhDate).map((e) => e.player)); rosterNames().forEach((n) => { if (!have.has(n)) picks.add(n); }); paintPicker(); });
+  $("xhPickNone").addEventListener("click", () => { picks = new Set(); paintPicker(); });
+  $("xhPickCancel").addEventListener("click", () => { $("xhPicker").hidden = true; });
+  const addName = () => { const v = $("xhNewName").value.replace(/\s+/g, " ").trim(); if (!v) return; if (!xhRoster.includes(v) && !rosterNames().includes(v)) xhRoster.push(v); picks.add(v); $("xhNewName").value = ""; xhSave(); paintPicker(); };
+  $("xhNewAdd").addEventListener("click", addName); $("xhNewName").addEventListener("keydown", (e) => { if (e.key === "Enter") addName(); });
+  $("xhPickGo").addEventListener("click", () => { const n = xhAdd([...picks].sort()); $("xhPicker").hidden = true; toast(n ? `Checked in ${n} player${n === 1 ? "" : "s"}. Now pick their treatments.` : "Nobody new to add."); });
+  $("xhCsv").addEventListener("click", xhDownload);
+  $("xhImport").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    try { const rows = xhFromCSV(await f.text()); if (!rows.length) { toast("No entries found in that file."); return; }
+      const ids = new Map(xh.map((x) => [x.id, x])); let add = 0, upd = 0; rows.forEach((r) => { if (ids.has(r.id)) { Object.assign(ids.get(r.id), r); upd++; } else { xh.push(r); add++; } });
+      xhSave(); renderExtra(); toast(`Imported ${add} new and updated ${upd} entries.`); } catch (err) { toast(err.message); }
+  });
+  document.addEventListener("click", (e) => { if (popFor && !e.target.closest("#xhPop") && !e.target.closest(".xh-treat")) closePop(); });
+  window.addEventListener("resize", closePop);
   $("pdfBtn").addEventListener("click", downloadPDF);
   $("prSel").addEventListener("change", (e) => { prName = e.target.value; renderPlayerReport(); });
   $("prPrev").addEventListener("click", () => stepPlayer(-1));
