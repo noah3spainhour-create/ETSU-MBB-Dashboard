@@ -364,7 +364,7 @@ body.dragging .dropveil{display:grid}
 
   <!-- EXTRA HOURS -->
   <section class="view" id="v-extra">
-    <div class="pagehead"><div><h2>Open weight room · extra hours</h2><p>Log who came in, what they worked on, and any notes. Pick a date, add the players who showed up, then choose one or more treatments for each.</p></div>
+    <div class="pagehead"><div><h2>Open weight room · extra hours</h2><p>Log who came in, what they worked on, and any notes. Pick a date, add the players who showed up, then choose one or more session focus areas for each.</p></div>
       <div class="toolbar"><button class="btn" id="xhCsv">⬇ Download CSV</button><label class="btn" for="xhImport" tabindex="0">⬆ Import CSV</label><input type="file" id="xhImport" accept=".csv,text/csv"></div></div>
     <div class="card xh-report">
       <div class="toolbar" style="justify-content:space-between">
@@ -397,12 +397,12 @@ body.dragging .dropveil{display:grid}
         <div class="toolbar" style="margin-top:10px"><input class="xh-in" id="xhNewName" placeholder="Add a player not on the list…" style="max-width:260px"><button class="btn" id="xhNewAdd">Add name</button><span style="flex:1"></span><button class="btn" id="xhPickCancel">Cancel</button><button class="btn btn-gold" id="xhPickGo">Add to table</button></div>
       </div>
       <h3 id="xhTitle" style="margin:16px 0 10px"></h3>
-      <div class="tablebox"><table id="xhTable" class="xh-table"><thead><tr><th class="l" style="width:150px">Date</th><th class="l" style="width:220px">Player</th><th class="l" style="width:300px">Treatment</th><th class="l">Notes</th><th style="width:44px"></th></tr></thead><tbody></tbody></table></div>
+      <div class="tablebox"><table id="xhTable" class="xh-table"><thead><tr><th class="l" style="width:150px">Date</th><th class="l" style="width:220px">Player</th><th class="l" style="width:300px">Session focus</th><th class="l">Notes</th><th style="width:44px"></th></tr></thead><tbody></tbody></table></div>
       <div class="empty" id="xhEmpty" style="padding:30px 16px">No one logged yet. Use <b>＋ Add players</b> to check people in.</div>
       <div class="muted" id="xhSaved" style="font-size:12.5px;margin-top:8px"></div>
     </div>
     <div class="grid2">
-      <div class="card"><h3>Treatments chosen</h3><p class="note">All logged visits. One visit can count toward several treatments.</p><div class="qmini" id="xhTreatBars"></div></div>
+      <div class="card"><h3>Session focus</h3><p class="note">All logged visits. One visit can count toward more than one focus.</p><div class="qmini" id="xhTreatBars"></div></div>
       <div class="card"><h3>Most extra hours</h3><p class="note">Visits per player, all dates.</p><div id="xhLeaders"></div></div>
     </div>
     <div class="card"><h3>Saving and sharing</h3><div class="defs" style="margin-top:8px">
@@ -1300,12 +1300,12 @@ body.dragging .dropveil{display:grid}
   function rosterNames() { return [...new Set([...A.rows.map((r) => r.name), ...xhRoster, ...xh.map((e) => e.player).filter(Boolean)])].sort((a, b) => a.localeCompare(b)); }
   function xhToCSV(list) {
     const q = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
-    return [["Date", "Player", "Treatments", "Notes", "ID"].map(q).join(",")].concat(list.filter((e) => e.player).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.player.localeCompare(b.player))).map((e) => [e.date, e.player, e.treatments.join("; "), e.notes, e.id].map(q).join(","))).join("\n");
+    return [["Date", "Player", "Session Focus", "Notes", "ID"].map(q).join(",")].concat(list.filter((e) => e.player).sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.player.localeCompare(b.player))).map((e) => [e.date, e.player, e.treatments.join("; "), e.notes, e.id].map(q).join(","))).join("\n");
   }
   function xhFromCSV(text) {
     const rows = parseCSV(text); if (rows.length < 2) return [];
     const h = rows[0].map(norm), ix = (k) => h.indexOf(k);
-    const [di, pi, ti, ni, ii] = ["date", "player", "treatments", "notes", "id"].map(ix);
+    const [di, pi, ti0, ni, ii] = ["date", "player", "session focus", "notes", "id"].map(ix), ti = ti0 >= 0 ? ti0 : ix("treatments");
     if (di < 0 || pi < 0) throw new Error("That file needs Date and Player columns.");
     return rows.slice(1).map((r) => ({ id: (ii >= 0 && r[ii]) || uid(), date: toISO(r[di]) || r[di], player: String(r[pi] || "").trim(), treatments: ti >= 0 ? String(r[ti] || "").split(/[;,]/).map((s) => s.trim()).filter((s) => TCOL[s]) : [], notes: ni >= 0 ? r[ni] || "" : "" })).filter((e) => e.date && e.player);
   }
@@ -1331,7 +1331,7 @@ body.dragging .dropveil{display:grid}
   }
   function paintTreat(btn, entry) {
     btn.replaceChildren();
-    if (!entry.treatments.length) btn.appendChild(el("span", "muted", "Select treatment…"));
+    if (!entry.treatments.length) btn.appendChild(el("span", "muted", "Select focus…"));
     entry.treatments.forEach((t) => { const c = el("span", "xh-chip", t); c.style.setProperty("--tc", TCOL[t]); btn.appendChild(c); });
     btn.appendChild(el("span", "xh-caret", "▾"));
   }
@@ -1428,7 +1428,7 @@ body.dragging .dropveil{display:grid}
     const has = tcount[0] && tcount[0][1], tie = has ? tcount.slice(1).filter((x) => x[1] === tcount[0][1]).map((x) => x[0]) : [];
     const tiles = [
       ["NUMBER OF PLAYERS", String(players.size), `${list.length} visit${list.length === 1 ? "" : "s"}${days.size > 1 ? ` over ${days.size} days` : ""}`, NAVY],
-      ["MOST USED TREATMENT", has ? tcount[0][0] : "-", has ? `${tcount[0][1]} visit${tcount[0][1] === 1 ? "" : "s"}${tie.length ? ` (tied with ${tie.length === 1 ? tie[0] : tie.slice(0, -1).join(", ") + " & " + tie.at(-1)})` : ""}` : "no treatments logged", has ? hexRGB(TCOL[tcount[0][0]]) : MUTED]
+      ["MOST USED SESSION FOCUS", has ? tcount[0][0] : "-", has ? `${tcount[0][1]} visit${tcount[0][1] === 1 ? "" : "s"}${tie.length ? ` (tied with ${tie.length === 1 ? tie[0] : tie.slice(0, -1).join(", ") + " & " + tie.at(-1)})` : ""}` : "no session focus logged", has ? hexRGB(TCOL[tcount[0][0]]) : MUTED]
     ], tw = (CW - 10) / 2;
     tiles.forEach(([k, big, sub, col], i) => {
       const x = M + i * (tw + 10); doc.setFillColor(244, 246, 249); doc.roundedRect(x, y, tw, 62, 6, 6, "F"); doc.setFillColor(...col); doc.rect(x, y, 4, 62, "F");
@@ -1438,13 +1438,13 @@ body.dragging .dropveil{display:grid}
     });
     y += 82;
     // treatments
-    font(12, "bold"); doc.text("Treatments", M, y); y += 12;
+    font(12, "bold"); doc.text("Session focus", M, y); y += 12;
     const max = Math.max(1, ...TREAT.map(([t]) => list.filter((e) => e.treatments.includes(t)).length));
     TREAT.forEach(([t, c]) => { const n = list.filter((e) => e.treatments.includes(t)).length, rgb = hexRGB(c); doc.setFillColor(...rgb); doc.rect(M, y + 2, 7, 7, "F"); font(9.5, "bold"); doc.text(t, M + 13, y + 9); doc.setFillColor(236, 239, 243); doc.roundedRect(M + 110, y + 2, CW - 150, 8, 4, 4, "F"); if (n) { doc.setFillColor(...rgb); doc.roundedRect(M + 110, y + 2, Math.max(8, (CW - 150) * n / max), 8, 4, 4, "F"); } font(9.5, "bold"); doc.text(String(n), PW - M, y + 9, { align: "right" }); y += 16; });
     y += 14;
     // attendance table
     font(12, "bold"); doc.text("Attendance", M, y); y += 8;
-    const multi = days.size > 1, cols = multi ? [["Date", 62], ["Player", 120], ["Treatments", 180], ["Notes", CW - 362]] : [["Player", 140], ["Treatments", 200], ["Notes", CW - 340]];
+    const multi = days.size > 1, cols = multi ? [["Date", 62], ["Player", 120], ["Session focus", 180], ["Notes", CW - 362]] : [["Player", 140], ["Session focus", 200], ["Notes", CW - 340]];
     const head = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 20, "F"); font(9, "bold", [255, 255, 255]); let x = M; cols.forEach(([h, w]) => { doc.text(h, x + 6, y + 13.5); x += w; }); y += 20; };
     head();
     if (!list.length) { font(10, "normal", MUTED); doc.text("No one logged for this period.", M + 6, y + 18); y += 30; }
@@ -1471,7 +1471,7 @@ body.dragging .dropveil{display:grid}
       y += 20; if (y + 60 > PH - 46) newPage();
       font(12, "bold"); doc.text("Visits by player", M, y); y += 8;
       const tot = d3.rollups(list, (g) => ({ n: g.length, t: TREAT.map(([t]) => [t, g.filter((e) => e.treatments.includes(t)).length]).filter(([, n]) => n) }), (e) => e.player).sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]));
-      const pc = [["Player", 160], ["Visits", 60], ["Treatments", CW - 220]];
+      const pc = [["Player", 160], ["Visits", 60], ["Session focus", CW - 220]];
       const ph = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 20, "F"); font(9, "bold", [255, 255, 255]); let x = M; pc.forEach(([h, w]) => { doc.text(h, x + 6, y + 13.5); x += w; }); y += 20; };
       ph();
       tot.forEach(([p, v], i) => { if (y + 20 > PH - 46) { newPage(); ph(); } if (i % 2) { doc.setFillColor(247, 249, 251); doc.rect(M, y, CW, 20, "F"); } doc.setDrawColor(...LINE); doc.line(M, y + 20, M + CW, y + 20); font(9.5, "bold"); doc.text(T(p), M + 6, y + 13.5); doc.text(String(v.n), M + 166, y + 13.5); font(9, "normal"); doc.text(T(v.t.map(([t, n]) => `${t} ${n}`).join("   ") || "-"), M + 226, y + 13.5); y += 20; });
@@ -1554,7 +1554,7 @@ body.dragging .dropveil{display:grid}
   $("xhPickCancel").addEventListener("click", () => { $("xhPicker").hidden = true; });
   const addName = () => { const v = $("xhNewName").value.replace(/\s+/g, " ").trim(); if (!v) return; if (!xhRoster.includes(v) && !rosterNames().includes(v)) xhRoster.push(v); picks.add(v); $("xhNewName").value = ""; xhSave(); paintPicker(); };
   $("xhNewAdd").addEventListener("click", addName); $("xhNewName").addEventListener("keydown", (e) => { if (e.key === "Enter") addName(); });
-  $("xhPickGo").addEventListener("click", () => { const n = xhAdd([...picks].sort()); $("xhPicker").hidden = true; toast(n ? `Checked in ${n} player${n === 1 ? "" : "s"}. Now pick their treatments.` : "Nobody new to add."); });
+  $("xhPickGo").addEventListener("click", () => { const n = xhAdd([...picks].sort()); $("xhPicker").hidden = true; toast(n ? `Checked in ${n} player${n === 1 ? "" : "s"}. Now pick their session focus.` : "Nobody new to add."); });
   document.querySelectorAll("#xhRangeSeg button").forEach((b) => b.addEventListener("click", () => { xhRange = b.dataset.r; renderExtra(); }));
   $("xhPdf").addEventListener("click", xhPDFDownload);
   $("xhMail").addEventListener("click", xhEmail);
