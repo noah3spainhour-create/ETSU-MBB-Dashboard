@@ -233,6 +233,7 @@ body.dragging .dropveil{display:grid}
 .xh-pick-grid label{display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;font-size:14px}
 .xh-pick-grid label.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .xh-pick-grid label.dis{opacity:.5;cursor:default}
+@media(max-width:700px){#xhMailTo{width:100%!important}}
 .xh-lead{display:grid;grid-template-columns:22px 1fr auto 40px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
 .xh-lead .num{text-align:right;font-weight:700}
 [hidden]{display:none!important}
@@ -365,6 +366,18 @@ body.dragging .dropveil{display:grid}
   <section class="view" id="v-extra">
     <div class="pagehead"><div><h2>Open weight room · extra hours</h2><p>Log who came in, what they worked on, and any notes. Pick a date, add the players who showed up, then choose one or more treatments for each.</p></div>
       <div class="toolbar"><button class="btn" id="xhCsv">⬇ Download CSV</button><label class="btn" for="xhImport" tabindex="0">⬆ Import CSV</label><input type="file" id="xhImport" accept=".csv,text/csv"></div></div>
+    <div class="card xh-report">
+      <div class="toolbar" style="justify-content:space-between">
+        <div class="toolbar"><b style="margin-right:4px">Report</b>
+          <div class="seg" id="xhRangeSeg" role="group" aria-label="Report range"><button data-r="date">This date</button><button data-r="week">This week</button><button data-r="all">All dates</button></div>
+          <span class="muted" id="xhRangeLbl" style="font-size:13px"></span></div>
+        <div class="toolbar">
+          <input class="xh-in" id="xhMailTo" type="email" multiple placeholder="Email to (optional): coach@etsu.edu, …" style="width:280px">
+          <button class="btn" id="xhPdf">⬇ PDF report</button>
+          <button class="btn btn-gold" id="xhMail">✉ Email report</button>
+        </div>
+      </div>
+    </div>
     <div class="kpis">
       <div class="kpi"><div class="lbl">Players on this date</div><div class="big" id="xh-k-today">0</div><div class="sub">selected date</div></div>
       <div class="kpi"><div class="lbl">Players this week</div><div class="big" id="xh-k-week">0</div><div class="sub" id="xh-k-weeks"></div></div>
@@ -1360,6 +1373,9 @@ body.dragging .dropveil{display:grid}
     });
     $("xhEmpty").hidden = list.length > 0;
     renderXHSummary();
+    document.querySelectorAll("#xhRangeSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.r === xhRange)));
+    const R = xhRangeInfo(), n = xhInRange(R).length; $("xhRangeLbl").textContent = `${R.label.replace(/ - /g, " – ")} · ${n} visit${n === 1 ? "" : "s"}`;
+    if (!$("xhMailTo").value) { try { $("xhMailTo").value = localStorage.getItem(XH_MAIL_KEY) || ""; } catch (e) { /* ignore */ } }
   }
   function renderXHSummary() {
     const now = new Date(xhDate + "T12:00:00"), day = (now.getDay() + 6) % 7, mon = new Date(now); mon.setDate(now.getDate() - day);
@@ -1378,6 +1394,104 @@ body.dragging .dropveil{display:grid}
     counts.slice(0, 10).forEach(([p, v], i) => { const d = el("div", "xh-lead"); d.append(el("span", "num muted", String(i + 1)), el("b", "", p), el("span", "muted", `last ${new Date(v.last + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`), el("span", "num", `${v.n}`)); lb.appendChild(d); });
   }
   function xhDownload() { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([xhToCSV(xh)], { type: "text/csv" })); a.download = "extra-hours.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+
+  // ---------- extra hours PDF + email ----------
+  const XH_MAIL_KEY = "etsu-extra-mail-v1";
+  let xhRange = "date";
+  function xhRangeInfo() {
+    const d = new Date(xhDate + "T12:00:00"), iso = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+    const nice = (s, o) => new Date(s + "T12:00:00").toLocaleDateString("en-US", o || { month: "short", day: "numeric", year: "numeric" });
+    if (xhRange === "week") { const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); const a = iso(mon), b = iso(sun); return { a, b, label: `Week of ${nice(a, { month: "short", day: "numeric" })} - ${nice(b)}`, file: `week-${a}` }; }
+    if (xhRange === "all") { const ds = xh.map((e) => e.date).sort(); const a = ds[0] || xhDate, b = ds[ds.length - 1] || xhDate; return { a, b, label: ds.length ? `All sessions - ${nice(a, { month: "short", day: "numeric" })} to ${nice(b)}` : "All sessions", file: "all" }; }
+    return { a: xhDate, b: xhDate, label: nice(xhDate, { weekday: "long", month: "long", day: "numeric", year: "numeric" }), file: xhDate };
+  }
+  const xhInRange = (R) => xh.filter((e) => e.player && e.date >= R.a && e.date <= R.b).sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : x.player.localeCompare(y.player)));
+  const hexRGB = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+
+  function buildXHPDF() {
+    if (!window.jspdf) { toast("The PDF tool didn't load. Check your internet connection and refresh."); return null; }
+    const R = xhRangeInfo(), list = xhInRange(R), doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+    const PW = 612, PH = 792, M = 36, CW = PW - 2 * M, NAVY = [4, 30, 66], GOLD = [255, 199, 44], INK = [14, 26, 43], MUTED = [93, 104, 121], LINE = [225, 229, 236];
+    const T = pdfSafe, font = (sz, st = "normal", col = INK) => { doc.setFont("helvetica", st); doc.setFontSize(sz); doc.setTextColor(...col); };
+    let page = 1, y;
+    const footer = () => { font(8, "normal", MUTED); doc.text(T(`ETSU MBB Open Weight Room - ${R.label}`), M, PH - 18); doc.text(`Page ${page}`, PW - M, PH - 18, { align: "right" }); };
+    const newPage = () => { footer(); doc.addPage(); page++; y = 40; };
+    // header
+    doc.setFillColor(...NAVY); doc.rect(0, 0, PW, 66, "F"); doc.setFillColor(...GOLD); doc.rect(0, 66, PW, 3, "F");
+    font(8.5, "bold", GOLD); doc.text("ETSU MEN'S BASKETBALL", M, 24);
+    font(20, "bold", [255, 255, 255]); doc.text("Open Weight Room / Extra Hours", M, 49);
+    font(10.5, "normal", [205, 215, 230]); doc.text(T(R.label), PW - M, 49, { align: "right" });
+    y = 90;
+    // tiles
+    const players = new Set(list.map((e) => e.player)), days = new Set(list.map((e) => e.date));
+    const tiles = [[String(players.size), "Players"], [String(list.length), "Visits"], [String(days.size), days.size === 1 ? "Session day" : "Session days"]], tw = (CW - 20) / 3;
+    tiles.forEach(([n, l], i) => { const x = M + i * (tw + 10); doc.setFillColor(244, 246, 249); doc.roundedRect(x, y, tw, 52, 6, 6, "F"); doc.setFillColor(...NAVY); doc.rect(x, y, 4, 52, "F"); font(22, "bold"); doc.text(n, x + 16, y + 30); font(9, "normal", MUTED); doc.text(l, x + 16, y + 44); });
+    y += 70;
+    // treatments
+    font(12, "bold"); doc.text("Treatments", M, y); y += 12;
+    const max = Math.max(1, ...TREAT.map(([t]) => list.filter((e) => e.treatments.includes(t)).length));
+    TREAT.forEach(([t, c]) => { const n = list.filter((e) => e.treatments.includes(t)).length, rgb = hexRGB(c); doc.setFillColor(...rgb); doc.rect(M, y + 2, 7, 7, "F"); font(9.5, "bold"); doc.text(t, M + 13, y + 9); doc.setFillColor(236, 239, 243); doc.roundedRect(M + 110, y + 2, CW - 150, 8, 4, 4, "F"); if (n) { doc.setFillColor(...rgb); doc.roundedRect(M + 110, y + 2, Math.max(8, (CW - 150) * n / max), 8, 4, 4, "F"); } font(9.5, "bold"); doc.text(String(n), PW - M, y + 9, { align: "right" }); y += 16; });
+    y += 14;
+    // attendance table
+    font(12, "bold"); doc.text("Attendance", M, y); y += 8;
+    const multi = days.size > 1, cols = multi ? [["Date", 62], ["Player", 120], ["Treatments", 180], ["Notes", CW - 362]] : [["Player", 140], ["Treatments", 200], ["Notes", CW - 340]];
+    const head = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 20, "F"); font(9, "bold", [255, 255, 255]); let x = M; cols.forEach(([h, w]) => { doc.text(h, x + 6, y + 13.5); x += w; }); y += 20; };
+    head();
+    if (!list.length) { font(10, "normal", MUTED); doc.text("No one logged for this period.", M + 6, y + 18); y += 30; }
+    list.forEach((e, i) => {
+      font(9, "normal"); const notes = doc.splitTextToSize(T(e.notes || "-"), cols[cols.length - 1][1] - 12);
+      // chip layout
+      const tW = cols[cols.length - 2][1] - 12, chips = []; let cx = 0, cr = 0; font(8, "bold");
+      e.treatments.forEach((t) => { const w = doc.getTextWidth(t) + 12; if (cx + w > tW && cx > 0) { cr++; cx = 0; } chips.push({ t, x: cx, r: cr, w }); cx += w + 4; });
+      const h = Math.max(22, 8 + Math.max(notes.length * 11, (cr + 1) * 15));
+      if (y + h > PH - 46) { newPage(); head(); }
+      if (i % 2) { doc.setFillColor(247, 249, 251); doc.rect(M, y, CW, h, "F"); }
+      doc.setDrawColor(...LINE); doc.setLineWidth(0.5); doc.line(M, y + h, M + CW, y + h);
+      let x = M; const base = y + 14;
+      if (multi) { font(9, "normal", MUTED); doc.text(T(new Date(e.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric" })), x + 6, base); x += cols[0][1]; }
+      font(9.5, "bold"); doc.text(T(e.player), x + 6, base); x += cols[multi ? 1 : 0][1];
+      if (!chips.length) { font(9, "normal", MUTED); doc.text("-", x + 6, base); }
+      chips.forEach((c) => { const rgb = hexRGB(TCOL[c.t]); doc.setFillColor(...rgb); doc.roundedRect(x + 6 + c.x, y + 5 + c.r * 15, c.w, 12, 6, 6, "F"); font(8, "bold", [255, 255, 255]); doc.text(c.t, x + 12 + c.x, y + 13.6 + c.r * 15); });
+      x += cols[cols.length - 2][1];
+      font(9, "normal", e.notes ? INK : MUTED); doc.text(notes, x + 6, base);
+      y += h;
+    });
+    // per-player totals for multi-day reports
+    if (multi && list.length) {
+      y += 20; if (y + 60 > PH - 46) newPage();
+      font(12, "bold"); doc.text("Visits by player", M, y); y += 8;
+      const tot = d3.rollups(list, (g) => ({ n: g.length, t: TREAT.map(([t]) => [t, g.filter((e) => e.treatments.includes(t)).length]).filter(([, n]) => n) }), (e) => e.player).sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]));
+      const pc = [["Player", 160], ["Visits", 60], ["Treatments", CW - 220]];
+      const ph = () => { doc.setFillColor(...NAVY); doc.rect(M, y, CW, 20, "F"); font(9, "bold", [255, 255, 255]); let x = M; pc.forEach(([h, w]) => { doc.text(h, x + 6, y + 13.5); x += w; }); y += 20; };
+      ph();
+      tot.forEach(([p, v], i) => { if (y + 20 > PH - 46) { newPage(); ph(); } if (i % 2) { doc.setFillColor(247, 249, 251); doc.rect(M, y, CW, 20, "F"); } doc.setDrawColor(...LINE); doc.line(M, y + 20, M + CW, y + 20); font(9.5, "bold"); doc.text(T(p), M + 6, y + 13.5); doc.text(String(v.n), M + 166, y + 13.5); font(9, "normal"); doc.text(T(v.t.map(([t, n]) => `${t} ${n}`).join("   ") || "-"), M + 226, y + 13.5); y += 20; });
+    }
+    footer();
+    return { doc, R, list, fname: `ETSU-MBB-Extra-Hours-${R.file}.pdf` };
+  }
+  function xhEmailBody(R, list) {
+    const players = [...new Set(list.map((e) => e.player))];
+    const lines = [`ETSU MBB Open Weight Room / Extra Hours`, R.label, "", `${players.length} player${players.length === 1 ? "" : "s"}, ${list.length} visit${list.length === 1 ? "" : "s"}.`, ""];
+    TREAT.forEach(([t]) => { const n = list.filter((e) => e.treatments.includes(t)).length; if (n) lines.push(`${t}: ${n}`); });
+    lines.push("", "Who came in:");
+    const byP = d3.rollups(list, (g) => g, (e) => e.player).sort((a, b) => a[0].localeCompare(b[0]));
+    byP.forEach(([p, g]) => { const t = [...new Set(g.flatMap((e) => e.treatments))]; lines.push(`- ${p}${g.length > 1 ? ` (${g.length} visits)` : ""}${t.length ? ": " + t.join(", ") : ""}`); });
+    return lines.join("\n");
+  }
+  function xhPDFDownload() { const out = buildXHPDF(); if (out) savePDF(out.doc, out.fname); }
+  async function xhEmail() {
+    const out = buildXHPDF(); if (!out) return;
+    const to = ($("xhMailTo").value || "").trim(), subject = `ETSU MBB Extra Hours - ${pdfSafe(out.R.label)}`, body = xhEmailBody(out.R, out.list);
+    try { localStorage.setItem(XH_MAIL_KEY, to); } catch (e) { /* ignore */ }
+    const file = new File([out.doc.output("blob")], out.fname, { type: "application/pdf" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: subject, text: body }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    savePDF(out.doc, out.fname);
+    const mail = `mailto:${encodeURIComponent(to).replace(/%2C/g, ",").replace(/%40/g, "@")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body + "\n\n(The PDF report is attached.)")}`;
+    setTimeout(() => { window.location.href = mail; }, 300);
+    toast("PDF downloaded — attach it to the email that just opened (it's in your Downloads).");
+  }
 
   // ================= events =================
   function refresh() { A = analyze(merged()); render(); }
@@ -1431,6 +1545,9 @@ body.dragging .dropveil{display:grid}
   const addName = () => { const v = $("xhNewName").value.replace(/\s+/g, " ").trim(); if (!v) return; if (!xhRoster.includes(v) && !rosterNames().includes(v)) xhRoster.push(v); picks.add(v); $("xhNewName").value = ""; xhSave(); paintPicker(); };
   $("xhNewAdd").addEventListener("click", addName); $("xhNewName").addEventListener("keydown", (e) => { if (e.key === "Enter") addName(); });
   $("xhPickGo").addEventListener("click", () => { const n = xhAdd([...picks].sort()); $("xhPicker").hidden = true; toast(n ? `Checked in ${n} player${n === 1 ? "" : "s"}. Now pick their treatments.` : "Nobody new to add."); });
+  document.querySelectorAll("#xhRangeSeg button").forEach((b) => b.addEventListener("click", () => { xhRange = b.dataset.r; renderExtra(); }));
+  $("xhPdf").addEventListener("click", xhPDFDownload);
+  $("xhMail").addEventListener("click", xhEmail);
   $("xhCsv").addEventListener("click", xhDownload);
   $("xhImport").addEventListener("change", async (e) => {
     const f = e.target.files[0]; e.target.value = ""; if (!f) return;
