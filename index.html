@@ -1422,11 +1422,31 @@ body.dragging .dropveil{display:grid}
     font(20, "bold", [255, 255, 255]); doc.text("Open Weight Room / Extra Hours", M, 49);
     font(10.5, "normal", [205, 215, 230]); doc.text(T(R.label), PW - M, 49, { align: "right" });
     y = 90;
-    // tiles
-    const players = new Set(list.map((e) => e.player)), days = new Set(list.map((e) => e.date));
-    const tiles = [[String(players.size), "Players"], [String(list.length), "Visits"], [String(days.size), days.size === 1 ? "Session day" : "Session days"]], tw = (CW - 20) / 3;
-    tiles.forEach(([n, l], i) => { const x = M + i * (tw + 10); doc.setFillColor(244, 246, 249); doc.roundedRect(x, y, tw, 52, 6, 6, "F"); doc.setFillColor(...NAVY); doc.rect(x, y, 4, 52, "F"); font(22, "bold"); doc.text(n, x + 16, y + 30); font(9, "normal", MUTED); doc.text(l, x + 16, y + 44); });
-    y += 70;
+    // highlights
+    const players = new Set(list.map((e) => e.player)), days = new Set(list.map((e) => e.date)), roster = rosterNames();
+    const missing = roster.filter((n) => !players.has(n));
+    const tcount = TREAT.map(([t]) => [t, list.filter((e) => e.treatments.includes(t)).length]).sort((x, z) => z[1] - x[1]);
+    const top = d3.rollups(list, (g) => g.length, (e) => e.player).sort((x, z) => z[1] - x[1] || x[0].localeCompare(z[0]));
+    const rehab = [...new Set(list.filter((e) => e.treatments.includes("Prehab/Rehab")).map((e) => e.player))].sort();
+    const tiles = [
+      ["ROSTER COVERAGE", `${players.size} of ${roster.length}`, "players came in", NAVY],
+      ["MOST USED", tcount[0] && tcount[0][1] ? tcount[0][0] : "-", tcount[0] && tcount[0][1] ? `${tcount[0][1]} visit${tcount[0][1] === 1 ? "" : "s"}${(() => { const tie = tcount.slice(1).filter((x) => x[1] === tcount[0][1]).map((x) => x[0]); return tie.length ? ` (tied with ${tie.length === 1 ? tie[0] : tie.slice(0, -1).join(", ") + " & " + tie.at(-1)})` : ""; })()}` : "no treatments logged", tcount[0] && tcount[0][1] ? hexRGB(TCOL[tcount[0][0]]) : MUTED],
+      days.size > 1
+        ? ["TOP ATTENDEE", top[0] ? top[0][0] : "-", top[0] ? `${top[0][1]} visits${top[1] && top[1][1] === top[0][1] ? ` (tied with ${top.filter((x) => x[1] === top[0][1]).length - 1} other${top.filter((x) => x[1] === top[0][1]).length > 2 ? "s" : ""})` : ""}` : "", [201, 138, 0]]
+        : ["PREHAB / REHAB", String(rehab.length), rehab.length ? rehab.join(", ") : "no one in for rehab", hexRGB(TCOL["Prehab/Rehab"])]
+    ], tw = (CW - 20) / 3;
+    tiles.forEach(([k, big, sub, col], i) => {
+      const x = M + i * (tw + 10); doc.setFillColor(244, 246, 249); doc.roundedRect(x, y, tw, 62, 6, 6, "F"); doc.setFillColor(...col); doc.rect(x, y, 4, 62, "F");
+      font(7.5, "bold", MUTED); doc.text(k, x + 14, y + 15);
+      let sz = 18; font(sz, "bold", col); while (doc.getTextWidth(T(big)) > tw - 26 && sz > 11) { sz--; font(sz, "bold", col); } doc.text(T(big), x + 14, y + 36);
+      font(8.5, "normal", MUTED); const sl = doc.splitTextToSize(T(sub), tw - 26); doc.text(sl.slice(0, 2), x + 14, y + 49);
+    });
+    y += 74;
+    if (missing.length) {
+      font(9, "bold"); const lab = days.size > 1 ? "Haven't been in: " : "Not in today: "; doc.text(lab, M, y + 4);
+      const lw = doc.getTextWidth(lab); font(9, "normal", MUTED); const ml = doc.splitTextToSize(T(missing.join(", ")), CW - lw); doc.text(ml, M + lw, y + 4); y += ml.length * 11.5 + 14;
+    } else if (roster.length) { font(9, "bold", [28, 127, 71]); doc.text("Every player on the roster came in.", M, y + 4); y += 18; }
+    y += 4;
     // treatments
     font(12, "bold"); doc.text("Treatments", M, y); y += 12;
     const max = Math.max(1, ...TREAT.map(([t]) => list.filter((e) => e.treatments.includes(t)).length));
