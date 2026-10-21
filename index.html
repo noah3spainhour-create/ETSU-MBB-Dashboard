@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
 :root{
   --navy:#041E42; --navy2:#0B2A55; --gold:#FFC72C;
@@ -160,6 +161,38 @@ td .pname{font-weight:600}
 @media(max-width:820px){.rrow{grid-template-columns:44px 1fr auto}.rrow .hide-s{display:none}}
 .scale{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
 .scale span{flex:1;min-width:70px;text-align:center;font-size:12px;padding:6px 4px;border-radius:6px;font-weight:600}
+
+/* 3D muscle map (player profile) */
+:root{--m-strong:#2E9E5B;--m-avg:#E2B13C;--m-focus:#D2453B;--m-support:#D9D2C9;--m-idle:#D9D2C9;--m-bone:#EEE7DA;--m-drive:#1F5FA8;--m-help:#8DB4DF}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--m-strong:#4CC27F;--m-avg:#F0B429;--m-focus:#F06A5F;--m-support:#566176;--m-idle:#566176;--m-bone:#9AA3B2;--m-drive:#6CB4F0;--m-help:#35577E}}
+:root[data-theme="dark"]{--m-strong:#4CC27F;--m-avg:#F0B429;--m-focus:#F06A5F;--m-support:#566176;--m-idle:#566176;--m-bone:#9AA3B2;--m-drive:#6CB4F0;--m-help:#35577E}
+.ana .anactl{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin:10px 0}
+.ana .seg button{padding:6px 10px;font-size:12.5px;white-space:nowrap}
+@media(max-width:560px){.ana .seg{width:100%}.ana .seg button{flex:1;padding:6px 4px;font-size:12px}}
+.ana-stage{position:relative;height:440px;border-radius:10px;background:radial-gradient(ellipse at 50% 40%,var(--soft),var(--panel) 75%);border:1px solid var(--line);overflow:hidden}
+@media(max-width:560px){.ana-stage{height:400px}}
+.ana-canvas{display:block;touch-action:none;cursor:grab}.ana-canvas:active{cursor:grabbing}
+.ana-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted);font-size:13px}
+.ana-side{position:absolute;top:10px;font:700 12px "Barlow Condensed",sans-serif;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);pointer-events:none}
+.ana-side.l{left:12px}.ana-side.r{right:12px}
+.ana .tip{white-space:normal;max-width:220px}
+.ana-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin-top:10px}
+.ana-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.ana-detail{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--soft)}
+.ana-detail h4{margin:0;font-size:15px}
+.ana-detail .role{margin:4px 0 8px;font-size:13px;color:var(--muted)}
+.ana-detail ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+.ana-detail .sub{margin-top:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.ana-detail .hd{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.ana-detail .x{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:1px 8px;cursor:pointer}
+.ana-list{display:grid;gap:4px;margin-top:12px}
+.ana-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;width:100%;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 10px;cursor:pointer;font-size:13.5px}
+.ana-row[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.ana-row .lr{font-size:11px;color:var(--muted);margin-right:3px}
+.mchip{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.mchip.strong{background:var(--okbg);color:var(--ok)}.mchip.avg{background:var(--warnbg);color:var(--warn)}.mchip.focus{background:var(--badbg);color:var(--bad)}.mchip.support{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.ana-fine{font-size:11.5px;color:var(--muted);margin:10px 0 0}
+.ana-fine a{color:inherit}
 
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(4,15,35,.45);z-index:40;display:none}
@@ -1218,6 +1251,200 @@ body.dragging .dropveil{display:grid}
   }
 
   // ---------- drawer ----------
+  // ================= 3D muscle map =================
+  // Which muscles each force-plate quality points to. Force plates measure forces, not muscles,
+  // so this is an interpretation; left/right differences come straight from the asymmetry columns.
+  const MREG = [
+    { id: "quads", name: "Quadriceps", keys: ["vastus_lateralis", "vastus_medialis", "vastus_intermedius", "rectus_femoris"],
+      metrics: [["brake", 0.5], ["out", 0.5]], asym: ["decel", "conc"], phase: { brake: 1, push: 1, land: 1 }, train: "squat",
+      role: "Front of the thigh. Slows the dip on the way down, then straightens the knee to drive the jump." },
+    { id: "glutes", name: "Glutes", keys: ["gluteus_maximus"],
+      metrics: [["out", 1]], asym: ["decel", "conc"], phase: { brake: 0.6, push: 1, land: 0.6 }, train: "hinge",
+      role: "The main hip extensor and the biggest single driver of jump height." },
+    { id: "hams", name: "Hamstrings", keys: ["semitendinosus", "semimembranosus", "biceps_femoris_long", "biceps_femoris_short"],
+      metrics: [["out", 0.6], ["brake", 0.4]], asym: ["conc"], phase: { brake: 0.6, push: 0.7, land: 0.5 }, train: "hinge",
+      role: "Back of the thigh. Extends the hip with the glutes and helps control the dip." },
+    { id: "adductors", name: "Adductors", keys: ["adductor_magnus", "adductor_longus", "adductor_brevis", "gracilis", "pectineus"],
+      metrics: [["out", 1]], asym: ["conc"], phase: { brake: 0.4, push: 0.6, land: 0.4 }, train: "hinge",
+      role: "Inner thigh. The adductor magnus works as a hip extensor during the push." },
+    { id: "calves", name: "Calves", keys: ["gastrocnemius_medial", "gastrocnemius_lateral", "soleus", "plantaris"],
+      metrics: [["speed", 1]], asym: ["conc", "land"], phase: { brake: 0.4, push: 1, land: 1 }, train: "calf",
+      role: "Last link in the push and first to take the landing. Quick, stiff ankles show up as a better RSI-mod." },
+    { id: "hipstab", name: "Hip stabilizers", keys: ["gluteus_medius", "gluteus_minimus", "tensor_fasciae_latae"],
+      metrics: [["landsym", 1]], asym: ["land"], phase: { brake: 0.5, push: 0.3, land: 1 }, train: "land",
+      role: "Side of the hip. Keeps the pelvis level and the knees tracking over the toes, especially on landing." },
+    { id: "shins", name: "Shins", keys: ["tibialis_anterior"], metrics: [], asym: [], phase: { brake: 0.3, land: 0.6 }, train: null,
+      role: "Front of the lower leg. Controls the foot and ankle as he lands." },
+    { id: "core", name: "Core & trunk", keys: ["rectus_abdominis", "external_oblique", "internal_oblique", "transversus_abdominis", "iliocostalis_lumborum", "iliocostalis_thoracis", "longissimus_thoracis", "multifidus_lumborum", "spinalis_thoracis", "quadratus_lumborum"],
+      metrics: [], asym: [], phase: { brake: 0.4, push: 0.4, land: 0.5 }, train: "core",
+      role: "Holds the trunk stiff so leg force goes into the floor instead of leaking out." }
+  ];
+  const MREG_OF = new Map(); MREG.forEach((g) => g.keys.forEach((k) => MREG_OF.set(k, g)));
+  const MSTAT = { strong: "Strength", avg: "On par", focus: "Focus area", support: "Not measured" };
+  const MPHASE = { status: ["Strengths"], brake: ["Braking", "decel"], push: ["Push-off", "conc"], land: ["Landing", "land"] };
+  const MDRILL = {
+    calf: [["Pogo hops", "3 × 10", "Quick, stiff ankles: trains getting off the floor fast"], ["Single-leg calf raise (2 s pause)", "3 × 10 each", "Calf strength for push-off and landing"], ["Seated calf raise", "3 × 12", "Soleus strength with the knee bent"]],
+    land: [["Single-leg landing from low box", "3 × 5 each", "Absorb force evenly on both legs"], ["Lateral bound and stick", "3 × 4 each", "Control side-to-side landings"], ["Side plank with top-leg raise", "3 × 20 s each", "Glute med strength that keeps the knee from caving"]],
+    core: [["Dead bug", "3 × 8 each", "Keeps the trunk stiff while the legs move"], ["Pallof press", "3 × 10 each", "Anti-rotation strength"], ["Suitcase carry", "3 × 30 m each", "Side-to-side trunk control"]]
+  };
+  const MMET = {
+    out: { lab: "Jump height", get: (o) => o.jh, txt: (o) => f1(o.jh) + " cm" },
+    speed: { lab: "RSI-modified", get: (o) => o.rsi, txt: (o) => f2(o.rsi) + " m/s" },
+    brake: { lab: "Braking speed (dip)", get: (o) => (o.epv == null ? null : Math.abs(o.epv)), txt: (o) => f2(Math.abs(o.epv)) + " m/s" },
+    landsym: { lab: "Landing balance", get: (o) => (o.land_abs == null ? null : -o.land_abs), txt: (o) => asymTxt(o.land) + "%" }
+  };
+  const ASYMLAB = { decel: "braking", conc: "push-off", land: "landing" };
+  let anaMode = "status", anaView = "front", anaSel = null, anaTok = 0;
+
+  function muscleProfile(r) {
+    const peers = A.rows.filter((o) => o.date === r.date && !o.bw_flag);
+    const z = {};
+    for (const k in MMET) {
+      const v = MMET[k].get(r), vals = peers.map(MMET[k].get).filter((x) => x != null);
+      if (v == null || vals.length < 3) { z[k] = null; continue; }
+      const sd = d3.deviation(vals); z[k] = sd ? (v - d3.mean(vals)) / sd : 0;
+    }
+    const side = {};
+    if (r.decel_abs > 10) side.decel = { weak: weaker(r.decel), pct: r.decel_abs, thr: 10 };
+    if (r.conc_abs > 10) side.conc = { weak: weaker(r.conc), pct: r.conc_abs, thr: 10 };
+    if (r.land_abs > 15) side.land = { weak: weaker(r.land), pct: r.land_abs, thr: 15 }; // the lighter-landing leg
+    const regions = MREG.map((g) => {
+      const parts = g.metrics.filter(([k]) => z[k] != null), ws = d3.sum(parts, (p) => p[1]);
+      const base = ws ? d3.sum(parts, ([k, w]) => z[k] * w) / ws : null;
+      const sides = {};
+      ["left", "right"].forEach((s) => {
+        let pen = 0; const why = [];
+        g.asym.forEach((a) => { const x = side[a]; if (x && x.weak === s) { pen = Math.max(pen, 0.5 + (x.pct - x.thr) / 10); why.push(a); } });
+        const zz = base == null ? null : base - pen;
+        const status = base == null ? (pen ? "focus" : "support") : zz >= 0.5 ? "strong" : zz <= -0.5 ? "focus" : "avg";
+        sides[s] = { z: zz, pen, why, status };
+      });
+      return { ...g, base, sides };
+    });
+    return { r, z, side, regions, byId: new Map(regions.map((x) => [x.id, x])) };
+  }
+
+  function musclePaint(prof) {
+    const C = { strong: css("--m-strong"), avg: css("--m-avg"), focus: css("--m-focus"), support: css("--m-support") };
+    const idle = css("--m-idle"), drive = css("--m-drive"), help = css("--m-help"), bad = css("--m-focus");
+    return (id, u) => {
+      const g = MREG_OF.get(u.key); if (!g) return { color: idle };
+      const reg = prof.byId.get(g.id), s = reg.sides[u.side === "right" ? "right" : "left"];
+      const glow = anaSel === g.id ? 0.32 : 0;
+      if (anaMode === "status") return { color: C[s.status], glow };
+      const w = g.phase[anaMode] || 0; if (!w) return { color: idle };
+      const x = prof.side[MPHASE[anaMode][1]];
+      if (x && x.weak === u.side && g.asym.includes(MPHASE[anaMode][1])) return { color: bad, glow };
+      return { color: w >= 0.9 ? drive : help, glow };
+    };
+  }
+
+  function anatomyCard(r) {
+    const prof = muscleProfile(r), tok = ++anaTok;
+    const card = el("div", "card ana");
+    card.appendChild(el("h3", "", "Muscle map"));
+    card.appendChild(el("p", "note", "Drag to turn him, pinch or scroll to zoom, tap a muscle for details. Colors compare him with teammates on this test; a measurably weaker leg shows on that side."));
+    const ctl = el("div", "anactl");
+    const mkSeg = (label, items, cur, onSel) => {
+      const s = el("div", "seg"); s.setAttribute("role", "group"); s.setAttribute("aria-label", label);
+      items.forEach(([v, t]) => { const b = el("button", "", t); b.type = "button"; b.setAttribute("aria-pressed", String(v === cur)); b.onclick = () => { s.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); onSel(v); }; s.appendChild(b); });
+      return s;
+    };
+    ctl.appendChild(mkSeg("Color by", Object.entries(MPHASE).map(([k, v]) => [k, v[0]]), anaMode, (v) => { anaMode = v; repaint(); legend(); }));
+    ctl.appendChild(mkSeg("View", [["front", "Front"], ["back", "Back"], ["legs", "Legs"], ["legsBack", "Legs (back)"]], anaView, (v) => { anaView = v; viewer && viewer.view(v); }));
+    card.appendChild(ctl);
+    const stage = el("div", "ana-stage"); card.appendChild(stage);
+    const msg = el("div", "ana-msg", "Loading 3D model…"); stage.appendChild(msg);
+    const sideL = el("div", "ana-side l"), sideR = el("div", "ana-side r"); stage.append(sideL, sideR);
+    const tip = tipFor(stage);
+    const leg = el("div", "ana-legend"); card.appendChild(leg);
+    const detail = el("div", "ana-detail"); detail.hidden = true; card.appendChild(detail);
+    const list = el("div", "ana-list"); card.appendChild(list);
+    const fine = el("p", "ana-fine");
+    fine.innerHTML = "Force plates measure forces, not individual muscles, so the muscle colors are an interpretation of which muscles drive each part of the jump. Left–right differences are measured directly. 3D model: <a href=\"https://github.com/Z-Anatomy/Models-of-human-anatomy\" target=\"_blank\" rel=\"noopener\">Z-Anatomy</a> / BodyParts3D (© The Database Center for Life Science), adapted by the <a href=\"https://github.com/slfresh/fitmitwith-anatomy-atlas\" target=\"_blank\" rel=\"noopener\">Fit Mit With atlas</a>, <a href=\"https://creativecommons.org/licenses/by-sa/4.0/\" target=\"_blank\" rel=\"noopener\">CC BY-SA 4.0</a>.";
+    card.appendChild(fine);
+
+    let viewer = null;
+    function repaint() { if (viewer) viewer.paint(musclePaint(prof), { bone: css("--m-bone"), context: css("--m-idle"), connective: css("--m-idle") }); }
+    function views() { const back = anaView === "back" || anaView === "legsBack"; sideL.textContent = back ? "Left" : "Right"; sideR.textContent = back ? "Right" : "Left"; }
+    function legend() {
+      leg.replaceChildren();
+      const add = (v, t) => { const s = el("span"); const i = el("i"); i.style.background = css(v); s.append(i, t); leg.appendChild(s); };
+      if (anaMode === "status") { add("--m-strong", "Strength"); add("--m-avg", "On par with team"); add("--m-focus", "Focus area"); add("--m-support", "Not scored by the jump test"); }
+      else {
+        add("--m-drive", "Main drivers"); add("--m-help", "Helpers");
+        const x = prof.side[MPHASE[anaMode][1]];
+        if (x) add("--m-focus", `Weaker ${x.weak} leg (${f1(x.pct).replace(/\.0$/, "")}% gap)`);
+        else leg.appendChild(el("span", "", "Legs even in this phase"));
+      }
+    }
+    function select(id) {
+      anaSel = anaSel === id ? null : id; repaint();
+      list.querySelectorAll(".ana-row").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === anaSel)));
+      showDetail();
+    }
+    function showDetail() {
+      const g = anaSel && prof.byId.get(anaSel); detail.hidden = !g; if (!g) return;
+      detail.replaceChildren();
+      const hd = el("div", "hd"), t = el("div");
+      t.appendChild(el("h4", "", g.name)); t.appendChild(el("div", "role", g.role)); hd.appendChild(t);
+      const x = el("button", "x", "✕"); x.type = "button"; x.setAttribute("aria-label", "Close details"); x.onclick = () => select(g.id); hd.appendChild(x);
+      detail.appendChild(hd);
+      const chips = el("div"); ["left", "right"].forEach((s) => { const w = el("span", "lr", s === "left" ? "Left" : "Right"); const c = el("span", "mchip " + g.sides[s].status, MSTAT[g.sides[s].status]); chips.append(w, c, " "); });
+      detail.appendChild(chips);
+      const why = [];
+      g.metrics.forEach(([k]) => {
+        const zz = prof.z[k]; if (zz == null) return;
+        why.push(`${MMET[k].lab}: ${MMET[k].txt(r)} — ${zz >= 0.5 ? "above" : zz <= -0.5 ? "below" : "close to"} the team average`);
+      });
+      g.asym.forEach((a) => { const s = prof.side[a]; if (s) why.push(`${s.weak === "left" ? "Left" : "Right"} leg is weaker in ${ASYMLAB[a]} (${f1(s.pct).replace(/\.0$/, "")}% gap, measured)`); });
+      if (!g.metrics.length) why.push("The jump test doesn't isolate this area, so it isn't scored. It still has to work on every jump.");
+      else if (!why.length) why.push("Not enough data on this test to compare him with the team.");
+      detail.appendChild(el("div", "sub", "What the data says"));
+      const ul = el("ul"); why.forEach((w) => ul.appendChild(el("li", "", w))); detail.appendChild(ul);
+      const drills = regionDrills(g, r);
+      if (drills.length) {
+        detail.appendChild(el("div", "sub", "Train it"));
+        const ul2 = el("ul"); drills.forEach(([n, d, w]) => { const li = el("li"); li.appendChild(el("b", "", n)); li.append(` · ${d} — ${w}`); ul2.appendChild(li); }); detail.appendChild(ul2);
+      }
+    }
+    prof.regions.forEach((g) => {
+      const b = el("button", "ana-row"); b.type = "button"; b.dataset.id = g.id; b.setAttribute("aria-pressed", String(anaSel === g.id));
+      b.appendChild(el("span", "", g.name));
+      ["left", "right"].forEach((s) => { const w = el("span"); w.appendChild(el("span", "lr", s === "left" ? "L" : "R")); w.appendChild(el("span", "mchip " + g.sides[s].status, MSTAT[g.sides[s].status])); b.appendChild(w); });
+      b.onclick = () => select(g.id); list.appendChild(b);
+    });
+    if (anaSel && !prof.byId.has(anaSel)) anaSel = null;
+    legend(); views(); showDetail();
+    const vbtn = ctl.querySelectorAll(".seg")[1]; vbtn.addEventListener("click", views);
+
+    import("./anatomy.js").then((m) => m.getViewer()).then((v) => {
+      if (tok !== anaTok) return; viewer = v; msg.remove();
+      v.mount(stage, {
+        view: anaView,
+        onPick: (u) => { const g = u && MREG_OF.get(u.key); if (g) select(g.id); },
+        onHover: (u, ev) => {
+          const g = u && MREG_OF.get(u.key);
+          if (!g) { tip.hide(); return; }
+          const s = prof.byId.get(g.id).sides[u.side === "right" ? "right" : "left"];
+          tip.show(ev, [`${u.label} (${u.side})`, `${g.name} · ${MSTAT[s.status]}`]);
+        }
+      });
+      repaint();
+    }).catch((e) => { console.warn("3D model", e); if (tok === anaTok) msg.textContent = "The 3D model couldn't load on this device. The muscle summary below still shows his strengths and focus areas."; });
+    return card;
+  }
+
+  function regionDrills(g, r) {
+    if (!g.train) return [];
+    const p = planFor(r), weakSide = g.sides.left.pen > 0 || g.sides.right.pen > 0;
+    const fix = weakSide ? p.fix.filter((f) => f[3] === g.train).map((f) => f.slice(0, 3)) : [];
+    const base = g.train === "squat" ? p.base.squat : g.train === "hinge" ? p.base.hinge : MDRILL[g.train] || [];
+    const seen = new Set(), out = [];
+    [...fix, ...base].forEach((d) => { if (!seen.has(d[0]) && out.length < 3) { seen.add(d[0]); out.push(d); } });
+    return out;
+  }
+
   function openPlayer(name) {
     const r = A.rows.find((o) => o.name === name && o.date === date) || A.rows.filter((o) => o.name === name).pop(); if (!r) return;
     $("dName").textContent = name;
@@ -1230,6 +1457,7 @@ body.dragging .dropveil{display:grid}
     stat(f2(r.rsi), "RSI-mod" + (r.rsi_chg == null ? "" : ` · ${pct(r.rsi_chg)}`));
     b.appendChild(stats);
     if (r.flags.length) { const fc = el("div", "card"); fc.appendChild(el("h3", "", "Flags")); const d = el("div", "defs"); d.style.marginTop = "6px"; r.flags.forEach((f) => d.appendChild(el("div", f.level, f.text))); fc.appendChild(d); b.appendChild(fc); }
+    b.appendChild(anatomyCard(r));
     const hist = A.rows.filter((o) => o.name === name).sort((a, c) => (a.date < c.date ? -1 : 1)), dates = A.team.map((t) => t.date);
     const mk = (title) => { const c = el("div", "card"); c.appendChild(el("h3", "", title)); const bx = el("div", "box"); c.appendChild(bx); b.appendChild(c); return bx; };
     const muted = css("--chart-muted"), n = (o) => (o.bw_flag ? "BW reading off" : "");

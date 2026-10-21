@@ -15,7 +15,7 @@ Drag the CSV onto the dashboard page (or click **Add weekly CSV**). It's saved i
 Tests are matched by player name and date. If a later export repeats earlier weeks (ForceDecks often exports a date range), the duplicates replace each other instead of piling up.
 
 ## Tabs
-- **Home** — team briefing, readiness and jump KPIs, full roster with readiness and jumper type, needs-attention list, team trends. Click any player for a profile panel.
+- **Home** — team briefing, readiness and jump KPIs, full roster with readiness and jumper type, needs-attention list, team trends. Click any player for a profile panel, which includes a rotatable 3D **muscle map**.
 - **Jumper profiles** — jump height vs RSI-mod quadrant, split at the team averages: Explosive Elite (high & fast), Power Loader (high, slow), Quick Spring (low, fast), Foundation Builder (low & slow).
 - **Exercise plans** — for each player, 4 squat and 4 hinge variations matched to his jumper type, plus single-leg imbalance work aimed at his weaker side when his legs are more than 10% apart (15% for landing). Includes a weekly load note from readiness. Printable.
 - **Readiness** — 1–10 score vs the player's own baseline (average of up to 4 earlier clean tests): 7 + 40 × (0.7 × RSI-mod % change + 0.3 × jump height % change), capped 1–10. 1–4 Fatigued, 5–7 Monitor, 8–10 Ready.
@@ -25,6 +25,14 @@ Tests are matched by player name and date. If a later export repeats earlier wee
 - **Data & uploads** — saved tests, full results table, CSV download.
 
 **Bodyweight check:** if a player's bodyweight on a test is more than 4 kg off the median of his other tests, that test is flagged and not used as a comparison point. If half the team is flagged on one date, that whole test is treated as suspect (usually a plate-zero or weigh-in issue).
+
+## Muscle map (player profile)
+A realistic 3D muscle model in each player's profile. Drag to turn, pinch/scroll to zoom, tap a muscle for what the data says and exercises that train it.
+- **Strengths** view: each lower-body muscle group is colored Strength / On par / Focus area by comparing the player with teammates on the selected test — glutes and adductors from jump height, calves from RSI-mod, quads and hamstrings from jump height plus braking speed (Eccentric Peak Velocity), hip stabilizers from landing balance. Core and shins aren't scored by a jump test and stay gray.
+- A leg that is measurably weaker (braking or push-off asymmetry over 10%, landing over 15%) is marked down on that side only.
+- **Braking / Push-off / Landing** views show which muscles drive that phase, with the weaker leg in red when that phase's asymmetry is over the threshold.
+- Force plates measure forces, not muscles, so the muscle colors are an interpretation; left–right differences are measured directly.
+- The model (`models/muscles-male.glb`) is from Z-Anatomy / BodyParts3D via the Fit Mit With anatomy atlas, CC BY-SA 4.0 — see `models/ATTRIBUTION.md`. It needs a browser with WebGL; if that's missing the profile still shows the muscle summary list.
 
 ## Required export columns
 `Name`, `Date`, `Jump Height (Imp-Mom) [cm]`, `RSI-modified [m/s]`. Also used when present: `BW [KG]`, `Reps`, `Eccentric Peak Velocity`, `Countermovement Depth`, and the three `% (Asym)` columns for eccentric deceleration impulse, concentric impulse and peak landing force.
