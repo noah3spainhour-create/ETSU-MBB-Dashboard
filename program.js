@@ -95,20 +95,37 @@
     if (o) { ["name", "sets", "reps", "load", "unit", "note"].forEach((k) => { if (o[k] != null) e[k] = o[k]; }); e.skip = !!o.skip; e.own = o; }
     return e;
   }
+  // Block labels: an exercise with join=true runs in the same block as the one above it (superset / circuit).
+  // Solo blocks are "1", "2"; grouped blocks are "2A", "2B", "2C". Block shape lives on positions, so reordering keeps it.
+  function labels(items) {
+    const blk = []; let b = 0;
+    items.forEach((it, i) => { if (i === 0 || !it.join) b++; blk.push(b); });
+    const size = {}; blk.forEach((x) => (size[x] = (size[x] || 0) + 1));
+    let prev = 0, pos = 0;
+    return blk.map((x, i) => {
+      pos = x === prev ? pos + 1 : 0; prev = x;
+      const n = size[x], last = i === blk.length - 1 || blk[i + 1] !== x;
+      return { lab: n > 1 ? x + String.fromCharCode(65 + (pos % 26)) : String(x), n, first: pos === 0, last, kind: n > 2 ? "Circuit" : n === 2 ? "Superset" : "" };
+    });
+  }
+  const dayLabels = (day, p) => labels(day.items.concat(p ? ((P.extras[p.name] || {})[day.id] || []) : []));
   const fmt = (e) => `${e.sets ?? ""} × ${e.reps ?? ""}` + (e.load || e.unit ? ` @ ${e.unit === "RPE" ? "RPE " + e.load : e.load + (e.unit === "%" ? "%" : e.unit ? " " + e.unit : "")}` : "");
 
   // ---------- render ----------
   function unitSel(val, k, extra) { return `<select data-f="unit" data-k="${k}" aria-label="Load unit" ${extra || ""}>${UNITS.map((u) => `<option value="${esc(u)}"${u === (val || "") ? " selected" : ""}>${u ? esc(u) : "—"}</option>`).join("")}</select>`; }
   function catSel(val, k) { return `<select data-f="cat" data-k="${k}" aria-label="Pattern" class="pb-cat">${CATS.map((c) => `<option${c === val ? " selected" : ""}>${c}</option>`).join("")}</select>`; }
 
-  function itemHTML(day, it, i, n, src, p) {
+  function itemHTML(day, it, i, n, src, p, L) {
     const k = `${day.id}.${it.id}`, pm = !!p && src !== "x";
     const e = pm ? effective(it, p) : it, own = pm && e.own ? e.own : {};
     const oc = (f) => (pm && own[f] != null ? " pb-own" : "");
     const tags = pm ? e.tags.map((t) => `<span class="pb-tag t-${t.c}">${esc(t.t)}</span>`).join("") : "";
     const swapOn = !!it.swap;
-    let html = `<li class="pb-item${pm && e.skip ? " pb-skip" : ""}${src === "x" ? " pb-extra" : ""}" data-day="${day.id}" data-item="${it.id}" data-src="${src}">
-      <div class="pb-r1"><span class="pb-n">${i + 1}</span>
+    L = L || { lab: String(i + 1), n: 1, first: true, last: true, kind: "" };
+    const gcls = L.n > 1 ? " pb-g" + (L.first ? "" : " pb-gj") + (L.last ? "" : " pb-gm") : "";
+    let html = `<li class="pb-item${gcls}${pm && e.skip ? " pb-skip" : ""}${src === "x" ? " pb-extra" : ""}" data-day="${day.id}" data-item="${it.id}" data-src="${src}">
+      ${L.n > 1 && L.first ? `<div class="pb-gcap">${L.kind} · ${L.n} exercises</div>` : ""}
+      <div class="pb-r1"><span class="pb-n">${esc(L.lab)}</span>
         <input class="pb-name${oc("name")}" data-f="name" data-k="${k}.name" value="${esc(e.name)}" list="pbLib" aria-label="Exercise name" placeholder="Exercise">
         ${pm ? `<label class="pb-skipl"><input type="checkbox" data-a="skip"${e.skip ? " checked" : ""}> Skip</label>` : ""}</div>
       <div class="pb-r2">
@@ -120,7 +137,7 @@
       <input class="pb-note${oc("note")}" data-f="note" data-k="${k}.note" value="${esc(e.note)}" aria-label="Coaching note" placeholder="Note or cue">`;
     if (pm) html += (tags || Object.keys(own).length ? `<div class="pb-tags">${tags}${Object.keys(own).length ? `<button type="button" class="pb-link" data-a="resetItem">Undo his changes</button>` : ""}</div>` : "");
     else {
-      html += `<div class="pb-r4">${catSel(it.cat, k + ".cat")}${src !== "x" ? `<label class="pb-swapl"><input type="checkbox" data-a="swap"${swapOn ? " checked" : ""}> By jumper type</label>` : ""}
+      html += `<div class="pb-r4">${catSel(it.cat, k + ".cat")}${i > 0 ? `<label class="pb-swapl" title="Run this in the same block as the exercise above (superset / circuit)"><input type="checkbox" data-a="join"${it.join ? " checked" : ""}> Group with above</label>` : ""}${src !== "x" ? `<label class="pb-swapl"><input type="checkbox" data-a="swap"${swapOn ? " checked" : ""}> By jumper type</label>` : ""}
         <span class="pb-acts"><button type="button" data-a="up" aria-label="Move up"${i === 0 || (src === "x" && false) ? " disabled" : ""}>↑</button><button type="button" data-a="down" aria-label="Move down"${i === n - 1 ? " disabled" : ""}>↓</button>
         <button type="button" data-a="dupItem" aria-label="Duplicate">⧉</button><button type="button" data-a="delItem" aria-label="Delete exercise" class="pb-del">✕</button></span></div>`;
       if (swapOn && src !== "x") html += `<div class="pb-swaps">${QK.map((qq) => { const s = it.swap[qq] || v(it.name, it.sets, it.reps, it.load, it.unit), kk = `${k}.sw.${qq}`; return `<div class="pb-sw" data-q="${qq}"><span class="pb-qn"><i style="background:${ctx.Q[qq].colorVal}"></i>${esc(ctx.Q[qq].name)}</span>
@@ -132,7 +149,8 @@
 
   function dayHTML(day, di, n, p) {
     const sel = target === day.id, extras = p ? ((P.extras[p.name] || {})[day.id] || []) : [];
-    const items = day.items.map((it, i) => itemHTML(day, it, i, day.items.length, "t", p)).join("") + extras.map((it, i) => itemHTML(day, it, day.items.length + i, extras.length, "x", p)).join("");
+    const L = dayLabels(day, p), nt = day.items.length;
+    const items = day.items.map((it, i) => itemHTML(day, it, i, nt, "t", p, L[i])).join("") + extras.map((it, i) => itemHTML(day, it, nt + i, nt + extras.length, "x", p, L[nt + i])).join("");
     return `<article class="pb-day${sel ? " pb-target" : ""}" data-day="${day.id}">
       <div class="pb-dh">
         <input class="pb-title" data-f="title" data-k="${day.id}.title" value="${esc(day.title)}" aria-label="Day name"${p ? " readonly" : ""}>
@@ -252,10 +270,14 @@
     const list = li && (li.dataset.src === "x" ? (P.extras[me] || {})[li.dataset.day] : day.items);
     const idx = li && list ? list.findIndex((x) => x.id === li.dataset.item) : -1;
     switch (a) {
-      case "up": moveIn(list, idx, -1); break;
-      case "down": moveIn(list, idx, 1); break;
-      case "dupItem": list.splice(idx + 1, 0, copyItem(list[idx])); break;
-      case "delItem": if (p && li.dataset.src !== "x") return; list.splice(idx, 1); break;
+      case "up": case "down": {
+        // Exercises swap slots; the block structure (1, 2A, 2B…) stays where it is.
+        const j = idx + (a === "up" ? -1 : 1); if (j < 0 || j >= list.length) break;
+        const ja = !!list[idx].join, jb = !!list[j].join; moveIn(list, idx, j - idx); list[idx].join = ja; list[j].join = jb; break;
+      }
+      case "dupItem": { const c = copyItem(list[idx]), inGrp = !!list[idx].join || !!(list[idx + 1] && list[idx + 1].join); c.join = inGrp; list.splice(idx + 1, 0, c); break; }
+      case "delItem": if (p && li.dataset.src !== "x") return; if (!list[idx].join && list[idx + 1]) list[idx + 1].join = false; list.splice(idx, 1); break;
+      case "join": list[idx].join = el.checked; break;
       case "swap": { const it = list[idx]; if (el.checked) { it.swap = {}; QK.forEach((qq) => (it.swap[qq] = defaultSwap(it, qq))); } else it.swap = null; break; }
       case "skip": { const o = (P.overrides[me] = P.overrides[me] || {}), oi = (o[list[idx].id] = o[list[idx].id] || {}); if (el.checked) oi.skip = true; else delete oi.skip; if (!Object.keys(oi).length) delete o[list[idx].id]; break; }
       case "resetItem": if (P.overrides[me]) delete P.overrides[me][list[idx].id]; break;
@@ -346,15 +368,16 @@
     let html = "";
     if (kind === "team") {
       html = `<div class="pp-page">${head("Team program")}${w.days.map((d) => `<h3>${esc(d.title)}${d.focus ? ` <span>· ${esc(d.focus)}</span>` : ""}</h3>
-        <table><thead><tr><th>#</th><th>Exercise</th><th>Sets × reps @ load</th><th>Note</th></tr></thead><tbody>${d.items.map((it, i) => `<tr><td>${i + 1}</td><td><b>${esc(it.name)}</b>${it.swap ? `<div class="pp-sw">${QK.map((qq) => `${esc(ctx.Q[qq].name)}: ${esc(it.swap[qq].name)} ${esc(fmt(it.swap[qq]))}`).join("<br>")}</div>` : ""}</td><td>${esc(fmt(it))}</td><td>${esc(it.note)}</td></tr>`).join("")}</tbody></table>`).join("")}</div>`;
+        <table><thead><tr><th>#</th><th>Exercise</th><th>Sets × reps @ load</th><th>Note</th></tr></thead><tbody>${(() => { const L = labels(d.items); return d.items.map((it, i) => `<tr class="${L[i].n > 1 && !L[i].first ? "pp-gj" : ""}${L[i].n > 1 ? " pp-g" : ""}"><td class="pp-lab">${esc(L[i].lab)}${L[i].n > 1 && L[i].first ? `<div class="pp-kind">${L[i].kind}</div>` : ""}</td><td><b>${esc(it.name)}</b>${it.swap ? `<div class="pp-sw">${QK.map((qq) => `${esc(ctx.Q[qq].name)}: ${esc(it.swap[qq].name)} ${esc(fmt(it.swap[qq]))}`).join("<br>")}</div>` : ""}</td><td>${esc(fmt(it))}</td><td>${esc(it.note)}</td></tr>`).join(""); })()}</tbody></table>`).join("")}</div>`;
     } else {
       const who = p ? [p] : ctx.players;
       if (!who.length) return ctx.toast("No players yet — add a force plate test first.");
       html = who.map((pl) => {
         const bandTxt = { ready: "Ready", mon: "Monitor", fat: "Fatigued", none: "No score yet" }[pl.band];
         return `<div class="pp-page">${head(pl.name, `${esc(pl.qName || "")} · Readiness ${pl.score == null ? "—" : pl.score + "/10"} (${bandTxt})${pl.weak ? ` · Weaker ${pl.weak} leg` : ""}`)}${w.days.map((d) => {
-          const rows = d.items.map((it) => ({ e: effective(it, pl) })).filter((r) => !r.e.skip).concat(((P.extras[pl.name] || {})[d.id] || []).map((it) => ({ e: { ...it, tags: [{ t: "Just for you", c: "x" }] } })));
-          return `<h3>${esc(d.title)}${d.focus ? ` <span>· ${esc(d.focus)}</span>` : ""}</h3><table><thead><tr><th>#</th><th>Exercise</th><th>Sets × reps @ load</th><th class="pp-w">Load used</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td><b>${esc(r.e.name)}</b>${r.e.note ? `<div class="pp-sw">${esc(r.e.note)}</div>` : ""}</td><td>${esc(fmt(r.e))}</td><td class="pp-w"></td></tr>`).join("")}</tbody></table>`;
+          const L = dayLabels(d, pl), nt = d.items.length;
+          const rows = d.items.map((it, i) => ({ e: effective(it, pl), L: L[i] })).filter((r) => !r.e.skip).concat(((P.extras[pl.name] || {})[d.id] || []).map((it, i) => ({ e: { ...it, tags: [{ t: "Just for you", c: "x" }] }, L: L[nt + i] })));
+          return `<h3>${esc(d.title)}${d.focus ? ` <span>· ${esc(d.focus)}</span>` : ""}</h3><table><thead><tr><th>#</th><th>Exercise</th><th>Sets × reps @ load</th><th class="pp-w">Load used</th></tr></thead><tbody>${rows.map((r) => `<tr class="${r.L.n > 1 && !r.L.first ? "pp-gj" : ""}${r.L.n > 1 ? " pp-g" : ""}"><td class="pp-lab">${esc(r.L.lab)}${r.L.n > 1 && r.L.first ? `<div class="pp-kind">${r.L.kind}</div>` : ""}</td><td><b>${esc(r.e.name)}</b>${r.e.note ? `<div class="pp-sw">${esc(r.e.note)}</div>` : ""}</td><td>${esc(fmt(r.e))}</td><td class="pp-w"></td></tr>`).join("")}</tbody></table>`;
         }).join("")}</div>`;
       }).join("");
     }
