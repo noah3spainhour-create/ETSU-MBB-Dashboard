@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="program.css">
+<script src="program.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
 :root{
@@ -298,6 +300,7 @@ body.dragging .dropveil{display:grid}
   <a href="#profiles" data-v="profiles">Jumper profiles</a>
   <a href="#plans" data-v="plans">Exercise plans</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
+  <a href="#program" data-v="program">Program builder</a>
   <a href="#report" data-v="report">Coach report</a>
   <a href="#player-report" data-v="player-report">Player reports</a>
   <a href="#extra" data-v="extra">Extra hours</a>
@@ -394,6 +397,9 @@ body.dragging .dropveil{display:grid}
     </div>
     <div class="paper" id="prPaper"></div>
   </section>
+
+  <!-- PROGRAM BUILDER -->
+  <section class="view" id="v-program"><div id="pbRoot"></div></section>
 
   <!-- EXTRA HOURS -->
   <section class="view" id="v-extra">
@@ -700,15 +706,16 @@ body.dragging .dropveil{display:grid}
 
   function render() {
     const has = A.rows.length > 0;
-    $("empty").hidden = has || view === "data" || view === "extra";
+    $("empty").hidden = has || view === "data" || view === "extra" || view === "program";
     const dates = A.team.map((t) => t.date);
     $("subline").textContent = has ? `Force plate CMJ monitoring · ${dates.length} test${dates.length > 1 ? "s" : ""} · ${new Set(A.rows.map((r) => r.name)).size} players` : "Force plate CMJ monitoring · no tests yet";
     if (has && !dates.includes(date)) date = dates[dates.length - 1];
     $("dateSel").replaceChildren(...dates.slice().reverse().map((d) => new Option(dLong(d), d))); if (has) $("dateSel").value = date;
-    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra")));
+    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra" || view === "program")));
     document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.v === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
     renderData();
     if (view === "extra") { xhInit().then(renderExtra); }
+    if (view === "program") { xhInit().then(() => window.ProgramBuilder.render($("pbRoot"), pbCtx())); }
     if (!has) return;
     if (view === "home") renderHome();
     if (view === "profiles") renderProfiles();
@@ -1743,7 +1750,20 @@ body.dragging .dropveil{display:grid}
     const ok = saveLocal(); date = [...dates].sort().pop(); refresh();
     toast(`Added ${added} jumps across ${dates.size} test date${dates.size > 1 ? "s" : ""}.${ok ? " Saved in this browser — upload to GitHub to share." : " This browser can't keep them after you close the page."}`);
   }
-  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "report", "player-report", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+  // data the Program Builder tab needs: each player's latest test
+  function pbCtx() {
+    const latest = new Map();
+    A.rows.slice().sort((a, b) => (a.date < b.date ? -1 : 1)).forEach((r) => latest.set(r.name, r));
+    const players = [...latest.values()].map((r) => {
+      const lr = [[r.decel, r.decel_abs], [r.conc, r.conc_abs]].filter((x) => x[1] > 10).sort((a, b) => b[1] - a[1]);
+      return { name: r.name, q: r.q, qName: Q[r.q].name, qColor: css(Q[r.q].color), score: r.score, band: r.band, weak: lr.length ? weaker(lr[0][0]) : null, date: r.date };
+    });
+    (xhRoster || []).forEach((n) => { if (n && !latest.has(n)) players.push({ name: n, q: null, qName: "", qColor: css("--muted"), score: null, band: "none", weak: null }); });
+    players.sort((a, b) => a.name.localeCompare(b.name));
+    const QQ = {}; QKEYS.forEach((k) => (QQ[k] = { name: Q[k].name, squat: Q[k].squat, hinge: Q[k].hinge, colorVal: css(Q[k].color) }));
+    return { players, Q: QQ, toast };
+  }
+  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "program", "report", "player-report", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
