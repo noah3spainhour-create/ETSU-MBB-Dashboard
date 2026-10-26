@@ -1526,7 +1526,7 @@ body.dragging .dropveil{display:grid}
 
   // ================= EXTRA HOURS =================
   const XH_KEY = "etsu-extra-hours-v1", XH_ROSTER_KEY = "etsu-extra-roster-v1";
-  const TREAT = [["Mobility", "#2D6FB5"], ["Stretch", "#1C7F47"], ["Conditioning", "#B8322A"], ["Extra Lift", "#C98A00"], ["Prehab/Rehab", "#7B4FB8"]];
+  const TREAT = [["Mobility", "#2D6FB5"], ["Stretch", "#1C7F47"], ["Conditioning", "#B8322A"], ["Extra Lift", "#C98A00"], ["Prehab/Rehab", "#7B4FB8"], ["Treatment", "#0F8A8A"]];
   const TCOL = Object.fromEntries(TREAT);
   let xh = [], xhRoster = [], xhView = "date", xhDate = isoToday(), xhLoaded = false;
   function isoToday() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
