@@ -301,8 +301,7 @@ body.dragging .dropveil{display:grid}
   <a href="#plans" data-v="plans">Exercise plans</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
   <a href="#program" data-v="program">Program builder</a>
-  <a href="#report" data-v="report">Coach report</a>
-  <a href="#player-report" data-v="player-report">Player reports</a>
+  <a href="#reports" data-v="reports">Reports</a>
   <a href="#extra" data-v="extra">Extra hours</a>
   <a href="#data" data-v="data">Data &amp; uploads</a>
 </div></nav>
@@ -376,26 +375,28 @@ body.dragging .dropveil{display:grid}
     <div class="card"><h3>Left–right asymmetry</h3><p class="note">Not part of the score, but worth checking alongside it. Left of center favors the left leg. Shaded bands mark 10% and 15%.</p><div class="box" id="asym"></div><div class="legend" id="asymLegend"></div></div>
   </section>
 
-  <!-- REPORT -->
-  <section class="view" id="v-report">
-    <div class="pagehead"><div><h2>Coach report</h2><p>A one-page snapshot for the coaching staff: where each player lands on the quadrant, his bodyweight and his readiness score. It uses the test date picked at the top of the page.</p></div>
-      <button class="btn btn-gold" id="pdfBtn">⬇ Download PDF</button></div>
-    <div class="paper" id="paper"></div>
-  </section>
-
-  <!-- PLAYER REPORT -->
-  <section class="view" id="v-player-report">
-    <div class="pagehead"><div><h2>Player reports</h2><p>A one-page report to hand each player: his jumper type, readiness, where he ranks, his trend, left–right balance, what he's doing well, what to work on, a plain-language summary and a goal for next test.</p></div></div>
-    <div class="toolbar">
-      <button class="btn" id="prPrev" aria-label="Previous player">‹</button>
-      <select id="prSel" aria-label="Player" style="min-width:200px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select>
-      <button class="btn" id="prNext" aria-label="Next player">›</button>
-      <span id="prSummary" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
-      <span style="flex:1"></span>
-      <button class="btn btn-gold" id="prDl">⬇ Download PDF</button>
-      <button class="btn" id="prAll">⬇ All players (one PDF)</button>
+  <!-- REPORTS (player + coach) -->
+  <section class="view" id="v-reports">
+    <div class="pagehead"><div><h2>Reports</h2><p>Pick which report to build. Both use the test date picked at the top of the page.</p></div>
+      <div class="seg" id="rpSeg" role="group" aria-label="Report type"><button data-k="player">Player report</button><button data-k="coach">Coach report</button></div></div>
+    <div id="rpPlayer">
+      <div class="pagehead"><div><h3 style="margin:0 0 4px">Player report</h3><p>A one-page report to hand each player: his jumper type, readiness, where he ranks, his trend, left–right balance, what he's doing well, what to work on, a plain-language summary and a goal for next test.</p></div></div>
+      <div class="toolbar">
+        <button class="btn" id="prPrev" aria-label="Previous player">‹</button>
+        <select id="prSel" aria-label="Player" style="min-width:200px;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select>
+        <button class="btn" id="prNext" aria-label="Next player">›</button>
+        <span id="prSummary" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap"></span>
+        <span style="flex:1"></span>
+        <button class="btn btn-gold" id="prDl">⬇ Download PDF</button>
+        <button class="btn" id="prAll">⬇ All players (one PDF)</button>
+      </div>
+      <div class="paper" id="prPaper"></div>
     </div>
-    <div class="paper" id="prPaper"></div>
+    <div id="rpCoach">
+      <div class="pagehead"><div><h3 style="margin:0 0 4px">Coach report</h3><p>A one-page snapshot for the coaching staff: where each player lands on the quadrant, his bodyweight and his readiness score.</p></div>
+        <button class="btn btn-gold" id="pdfBtn">⬇ Download PDF</button></div>
+      <div class="paper" id="paper"></div>
+    </div>
   </section>
 
   <!-- PROGRAM BUILDER -->
@@ -721,8 +722,7 @@ body.dragging .dropveil{display:grid}
     if (view === "profiles") renderProfiles();
     if (view === "plans") renderPlans();
     if (view === "readiness") renderReadiness();
-    if (view === "report") renderReport();
-    if (view === "player-report") renderPlayerReport();
+    if (view === "reports") renderReports();
   }
 
   // ---------- HOME ----------
@@ -1160,6 +1160,13 @@ body.dragging .dropveil{display:grid}
     return doc;
   }
   const prNames = () => curRows().map((r) => r.name).sort();
+  let rpKind = (() => { try { return localStorage.getItem("etsu-report-kind") || "player"; } catch (e) { return "player"; } })();
+  function setReportKind(k) { rpKind = k === "coach" ? "coach" : "player"; try { localStorage.setItem("etsu-report-kind", rpKind); } catch (e) { /* ignore */ } }
+  function renderReports() {
+    document.querySelectorAll("#rpSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === rpKind)));
+    $("rpPlayer").hidden = rpKind !== "player"; $("rpCoach").hidden = rpKind !== "coach";
+    if (rpKind === "coach") renderReport(); else renderPlayerReport();
+  }
   function renderPlayerReport() {
     const names = prNames(); if (!names.includes(prName)) prName = names[0];
     const sel = $("prSel"); sel.replaceChildren(...names.map((n) => new Option(n))); sel.value = prName;
@@ -1476,7 +1483,7 @@ body.dragging .dropveil{display:grid}
     if (hs.length) { const b3 = mk("Readiness"); lineChart(b3, dates, [{ name: "Readiness", color: css("--c3"), pts: hs.map((o) => ({ d: o.date, v: o.score })) }], { fmt: d3.format("d"), title: "1–10", sel: date, domain: [1, 10] }); }
     const pl = el("button", "btn", "Open his exercise plan →"); pl.onclick = () => { closeDrawer(); planQ = "all"; planQuery = ""; $("planSearch").value = ""; location.hash = "plans"; setTimeout(() => { const t = document.getElementById("plan-" + name.replace(/\W+/g, "-")); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
     b.appendChild(pl);
-    const rp = el("button", "btn", "Open his player report →"); rp.onclick = () => { closeDrawer(); prName = name; location.hash = "player-report"; }; b.appendChild(rp);
+    const rp = el("button", "btn", "Open his player report →"); rp.onclick = () => { closeDrawer(); prName = name; setReportKind("player"); location.hash = "reports"; }; b.appendChild(rp);
     $("drawer").classList.add("open"); $("scrim").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("dClose").focus();
   }
   function closeDrawer() { $("drawer").classList.remove("open"); $("scrim").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); }
@@ -1763,7 +1770,11 @@ body.dragging .dropveil{display:grid}
     const QQ = {}; QKEYS.forEach((k) => (QQ[k] = { name: Q[k].name, squat: Q[k].squat, hinge: Q[k].hinge, colorVal: css(Q[k].color) }));
     return { players, Q: QQ, toast };
   }
-  function route() { const h = location.hash.replace("#", ""); view = ["home", "profiles", "plans", "readiness", "program", "report", "player-report", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+  function route() {
+    let h = location.hash.replace("#", "");
+    if (h === "report" || h === "coach-report") { setReportKind("coach"); h = "reports"; }
+    if (h === "player-report") { setReportKind("player"); h = "reports"; }
+    view = ["home", "profiles", "plans", "readiness", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -1816,6 +1827,7 @@ body.dragging .dropveil{display:grid}
   document.addEventListener("click", (e) => { if (popFor && !e.target.closest("#xhPop") && !e.target.closest(".xh-treat")) closePop(); });
   window.addEventListener("resize", closePop);
   $("pdfBtn").addEventListener("click", downloadPDF);
+  document.querySelectorAll("#rpSeg button").forEach((b) => b.addEventListener("click", () => { setReportKind(b.dataset.k); renderReports(); }));
   $("prSel").addEventListener("change", (e) => { prName = e.target.value; renderPlayerReport(); });
   $("prPrev").addEventListener("click", () => stepPlayer(-1));
   $("prNext").addEventListener("click", () => stepPlayer(1));
