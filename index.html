@@ -106,6 +106,9 @@ tbody tr.click{cursor:pointer}tbody tr.click:hover{background:var(--soft)}
 td .pname{font-weight:600}
 .roster{min-width:880px}
 .data-t{min-width:980px}
+.sym-t{min-width:760px}
+.sym-t td small{display:block;font-size:11.5px;color:var(--muted);font-weight:500}
+.sym-cell b{font-weight:700}
 
 /* charts */
 .box{position:relative;min-height:240px}
@@ -299,6 +302,7 @@ body.dragging .dropveil{display:grid}
   <a href="#home" data-v="home">Home</a>
   <a href="#profiles" data-v="profiles">Quadrant</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
+  <a href="#symmetry" data-v="symmetry">Symmetry analysis</a>
   <a href="#program" data-v="program">Program builder</a>
   <a href="#reports" data-v="reports">Reports</a>
   <a href="#extra" data-v="extra">Extra hours</a>
@@ -361,6 +365,34 @@ body.dragging .dropveil{display:grid}
       <div class="card"><h3>Score distribution</h3><p class="note">How many players at each score this test.</p><div class="box" id="rdist"></div></div>
     </div>
     <div class="card"><h3>Left–right asymmetry</h3><p class="note">Not part of the score, but worth checking alongside it. Left of center favors the left leg. Shaded bands mark 10% and 15%.</p><div class="box" id="asym"></div><div class="legend" id="asymLegend"></div></div>
+  </section>
+
+  <!-- SYMMETRY -->
+  <section class="view" id="v-symmetry">
+    <div class="pagehead"><div><h2>Symmetry analysis</h2><p>Left–right differences for every player on the test date picked at the top, and how each compares with the team average. Braking and push-off are flagged over 10% (red over 15%); landing over 15% (red over 25%), since landing naturally varies more.</p></div></div>
+    <div class="kpis" id="symKpis"></div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between"><h3 style="margin:0">Each player vs team</h3>
+        <div class="seg" id="symMetric" role="group" aria-label="Measure"><button data-m="decel">Braking</button><button data-m="conc">Push-off</button><button data-m="land">Landing</button></div></div>
+      <p class="note" id="symNote"></p>
+      <div class="box" id="symBars"></div><div class="legend" id="symLegend"></div>
+    </div>
+    <div class="card"><h3>Asymmetry table</h3><p class="note">The side shown is the leg doing more. Under each value: how far he sits from the team average, and the change since his last test. Click a player for his full profile.</p>
+      <div class="tablebox"><table class="sym-t" id="symtable"><thead><tr>
+        <th class="l"><button data-k="name">Player</button></th>
+        <th><button data-k="decel_abs">Braking</button></th>
+        <th><button data-k="conc_abs">Push-off</button></th>
+        <th><button data-k="land_abs">Landing</button></th>
+        <th><button data-k="max_asym">Largest</button></th>
+        <th class="l"><button data-k="symstatus">Status</button></th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Team trend</h3><p class="note">Team average asymmetry (either side) for each test date.</p><div class="box" id="symTeam"></div><div class="legend" id="symTeamLegend"></div></div>
+      <div class="card"><div class="toolbar" style="justify-content:space-between"><h3 style="margin:0">Player trend vs team</h3>
+        <select id="symPlayer" aria-label="Player" style="min-width:180px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select></div>
+        <p class="note" id="symPNote">His asymmetry on the selected measure against the team average.</p><div class="box" id="symPlayerChart"></div></div>
+    </div>
   </section>
 
   <!-- REPORTS (player + coach) -->
@@ -682,7 +714,7 @@ body.dragging .dropveil{display:grid}
 
   // ================= state & render =================
   let A = { rows: [], team: [] }, date = null, view = "home";
-  const sorts = { roster: ["score", 1], dtable: ["name", 1] };
+  const sorts = { roster: ["score", 1], dtable: ["name", 1], symtable: ["max_asym", -1] };
   const asymTxt = (v) => (v == null ? "—" : Math.abs(v) < 0.05 ? "0" : f1(Math.abs(v)).replace(/\.0$/, "") + (v > 0 ? " L" : " R"));
   const asymCls = (v) => (v == null ? "" : Math.abs(v) > 15 ? "bad" : Math.abs(v) > 10 ? "warn" : "");
   const curRows = () => A.rows.filter((r) => r.date === date);
@@ -709,6 +741,7 @@ body.dragging .dropveil{display:grid}
     if (view === "home") renderHome();
     if (view === "profiles") renderProfiles();
     if (view === "readiness") renderReadiness();
+    if (view === "symmetry") renderSymmetry();
     if (view === "reports") renderReports();
   }
 
@@ -1213,6 +1246,103 @@ body.dragging .dropveil{display:grid}
       metrics.forEach(([k, label, c]) => { const v = r[k]; if (v == null) return; svg.append("circle").attr("cx", x(Math.max(-lim, Math.min(lim, -v)))).attr("cy", cy).attr("r", 5.5).attr("fill", c).attr("stroke", css("--panel")).attr("stroke-width", 1.5).on("mousemove", (ev) => tip.show(ev, [r.name, `${label}: ${asymTxt(v).replace(" ", "% ")}`])).on("mouseleave", tip.hide); });
     });
     $("asymLegend").replaceChildren(...metrics.map(([, label, c]) => { const s = el("span"); const i = el("i"); i.style.background = c; s.append(i, label); return s; }));
+  }
+
+  // ---------- SYMMETRY ANALYSIS ----------
+  const SYM = { decel: { lab: "Braking", long: "Braking (eccentric decel impulse)", warn: 10, bad: 15, c: "--c1" }, conc: { lab: "Push-off", long: "Push-off (concentric impulse)", warn: 10, bad: 15, c: "--c2" }, land: { lab: "Landing", long: "Landing (peak landing force)", warn: 15, bad: 25, c: "--c4" } };
+  let symM = "decel", symP = null;
+  const symLvl = (k, v) => (v == null ? "" : Math.abs(v) > SYM[k].bad ? "bad" : Math.abs(v) > SYM[k].warn ? "warn" : "ok");
+  const symAvg = (rows, k) => d3.mean(rows.filter((r) => r[k] != null), (r) => Math.abs(r[k]));
+  const fsgn = (v) => { if (v == null) return "—"; const t = f1(Math.abs(v)).replace(/\.0$/, ""); return (t === "0" ? "±" : v > 0 ? "+" : "−") + t; };
+  function symPrev(r) { return A.rows.filter((o) => o.name === r.name && o.date < r.date).sort((a, b) => (a.date < b.date ? -1 : 1)).pop() || null; }
+  function renderSymmetry() {
+    const cur = curRows(), dates = A.team.map((t) => t.date), prevDate = dates[dates.indexOf(date) - 1], prevRows = prevDate ? A.rows.filter((r) => r.date === prevDate) : [];
+    const avg = {}; Object.keys(SYM).forEach((k) => (avg[k] = symAvg(cur, k)));
+    // KPIs
+    const kp = $("symKpis"); kp.replaceChildren();
+    const kpi = (lbl, big, sub, cls) => { const d = el("div", "kpi"); d.appendChild(el("div", "lbl", lbl)); d.appendChild(el("div", "big " + (cls || ""), big)); d.appendChild(el("div", "sub", sub)); kp.appendChild(d); };
+    Object.entries(SYM).forEach(([k, m]) => {
+      const pv = symAvg(prevRows, k), a = avg[k];
+      kpi(`Team avg · ${m.lab}`, a == null ? "—" : f1(a) + "%", a == null || pv == null ? "no earlier test" : `${fsgn(a - pv)} pts vs ${dShort(prevDate)}`);
+    });
+    const flagged = cur.filter((r) => Object.keys(SYM).some((k) => symLvl(k, r[k]) === "bad" || symLvl(k, r[k]) === "warn"));
+    kpi("Players flagged", `${flagged.length} of ${cur.length}`, `${cur.filter((r) => Object.keys(SYM).some((k) => symLvl(k, r[k]) === "bad")).length} in the red`, flagged.length ? "warn" : "ok");
+    if (!cur.some((r) => r.max_asym != null)) { $("symBars").replaceChildren(el("div", "muted", "This export has no asymmetry columns.")); return; }
+    // metric toggle
+    document.querySelectorAll("#symMetric button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.m === symM)));
+    const M = SYM[symM], a = avg[symM];
+    $("symNote").textContent = `${M.long}. Bars show the gap between legs; the label says which leg did more. The dashed line is the team average (${a == null ? "—" : f1(a) + "%"}).`;
+    symBars(cur, symM, a);
+    // table
+    const tb = $("symtable").querySelector("tbody"); tb.replaceChildren();
+    const rows = cur.map((r) => { const lv = Object.keys(SYM).map((k) => symLvl(k, r[k])); return { ...r, symstatus: lv.includes("bad") ? 0 : lv.includes("warn") ? 1 : r.max_asym == null ? 3 : 2 }; });
+    const [sk, sd] = sorts.symtable;
+    sortRows(rows, sk, sd).forEach((r) => {
+      const tr = el("tr", "click"); tr.onclick = () => openPlayer(r.name);
+      const n = el("td", "l"); n.appendChild(el("span", "pname", r.name)); tr.appendChild(n);
+      const pr = symPrev(r);
+      Object.keys(SYM).forEach((k) => {
+        const v = r[k], td = el("td", "sym-cell " + symLvl(k, v));
+        const bb = el("b", "", v == null ? "—" : asymTxt(v).replace(" ", "% ")); td.appendChild(bb);
+        if (v != null) {
+          const diff = Math.abs(v) - avg[k], ch = pr && pr[k] != null ? Math.abs(v) - Math.abs(pr[k]) : null;
+          td.appendChild(el("small", "", `${fsgn(diff)} vs team${ch == null ? "" : ` · ${fsgn(ch)} vs last`}`));
+        }
+        tr.appendChild(td);
+      });
+      tr.appendChild(el("td", "", r.max_asym == null ? "—" : f1(r.max_asym).replace(/\.0$/, "") + "%"));
+      const st = el("td", "l"); st.appendChild(el("span", "pill " + ["p-fat", "p-mon", "p-ready", "p-none"][r.symstatus], ["Large gap", "Watch", "Balanced", "No data"][r.symstatus])); tr.appendChild(st);
+      tb.appendChild(tr);
+    });
+    markSort("symtable");
+    // team trend
+    const tbx = $("symTeam"); tbx.replaceChildren();
+    const ser = Object.entries(SYM).map(([k, m]) => ({ name: m.lab, color: css(m.c), pts: dates.map((d) => ({ d, v: symAvg(A.rows.filter((r) => r.date === d), k) })).filter((p) => p.v != null) })).filter((s) => s.pts.length);
+    if (ser.length) lineChart(tbx, dates, ser, { fmt: (v) => f1(v) + "%", title: "avg % gap", sel: date, domain: [0, Math.max(15, d3.max(ser.flatMap((s) => s.pts.map((p) => p.v))) * 1.2)] });
+    $("symTeamLegend").replaceChildren(...ser.map((s) => { const sp = el("span"); const i = el("i"); i.style.background = s.color; sp.append(i, s.name); return sp; }));
+    // player trend
+    const names = [...new Set(A.rows.map((r) => r.name))].sort((x, y) => x.localeCompare(y));
+    if (!symP || !names.includes(symP)) symP = (sortRows(cur, "max_asym", -1)[0] || {}).name || names[0];
+    $("symPlayer").replaceChildren(...names.map((n) => new Option(n, n))); $("symPlayer").value = symP;
+    const pbx = $("symPlayerChart"); pbx.replaceChildren();
+    const hist = A.rows.filter((r) => r.name === symP && r[symM] != null).sort((x, y) => (x.date < y.date ? -1 : 1));
+    $("symPNote").textContent = `${symP}'s ${M.lab.toLowerCase()} gap against the team average. Flag line at ${M.warn}%.`;
+    if (!hist.length) { pbx.appendChild(el("div", "muted", "No asymmetry data for him on this measure.")); return; }
+    const team = { name: "Team avg", color: css("--chart-muted"), pts: dates.map((d) => ({ d, v: symAvg(A.rows.filter((r) => r.date === d), symM) })).filter((p) => p.v != null) };
+    const me = { name: symP, color: css(M.c), pts: hist.map((r) => ({ d: r.date, v: Math.abs(r[symM]), note: asymTxt(r[symM]).replace(" ", "% ") + " side" })) };
+    const hi = d3.max([...team.pts, ...me.pts], (p) => p.v);
+    lineChart(pbx, dates, [team, me], { fmt: (v) => f1(v) + "%", title: `${M.lab} % gap`, sel: date, domain: [0, Math.max(M.bad + 2, hi * 1.2)] });
+    const svg = d3.select(pbx).select("svg"), Wv = +svg.attr("viewBox").split(" ")[2];
+    const y = d3.scaleLinear([0, Math.max(M.bad + 2, hi * 1.2)], [220 - 26, 22]).nice(4);
+    svg.insert("line", ":first-child").attr("x1", 40).attr("x2", Wv - 44).attr("y1", y(M.warn)).attr("y2", y(M.warn)).attr("stroke", css("--warn")).attr("stroke-dasharray", "4 4").attr("opacity", 0.8);
+  }
+  function symBars(cur, k, a) {
+    const box = $("symBars"); box.replaceChildren();
+    const M = SYM[k], list = cur.filter((r) => r[k] != null).sort((x, y) => Math.abs(y[k]) - Math.abs(x[k]));
+    if (!list.length) { box.appendChild(el("div", "muted", "No data for this measure on this date.")); return; }
+    const W = Math.max(320, box.clientWidth || 900), rowH = 26, m = { t: 22, r: 70, b: 8, l: 0 };
+    const svg = d3.select(box).append("svg").attr("width", "100%");
+    const lw = d3.max(list, (r) => { const tx = svg.append("text").style("font-size", "12px").text(r.name); const w = tx.node().getComputedTextLength(); tx.remove(); return w; }) || 90;
+    m.l = Math.min(lw + 14, W * 0.4);
+    const H = m.t + list.length * rowH + m.b; svg.attr("viewBox", `0 0 ${W} ${H}`); box.style.minHeight = H + "px";
+    const lim = Math.max(M.bad + 5, Math.ceil(d3.max(list, (r) => Math.abs(r[k])) / 5) * 5 + 5), x = d3.scaleLinear([0, lim], [m.l, W - m.r]);
+    svg.append("rect").attr("x", x(0)).attr("width", x(M.warn) - x(0)).attr("y", m.t - 4).attr("height", H - m.t - m.b + 4).attr("fill", css("--ok")).attr("opacity", 0.07);
+    svg.append("rect").attr("x", x(M.warn)).attr("width", x(M.bad) - x(M.warn)).attr("y", m.t - 4).attr("height", H - m.t - m.b + 4).attr("fill", css("--warn")).attr("opacity", 0.08);
+    d3.range(0, lim + 1, 5).forEach((v) => { svg.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t - 4).attr("y2", H - m.b).attr("stroke", css("--line")).attr("opacity", 0.7); svg.append("text").attr("x", x(v)).attr("y", 12).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text(v + "%"); });
+    const tip = tipFor(box), col = { ok: css("--ok"), warn: css("--warn"), bad: css("--bad") };
+    list.forEach((r, i) => {
+      const cy = m.t + i * rowH + rowH / 2, v = Math.abs(r[k]), lv = symLvl(k, r[k]);
+      svg.append("text").attr("x", m.l - 10).attr("y", cy + 4).attr("text-anchor", "end").attr("fill", css("--fg")).style("font-size", "12px").style("cursor", "pointer").text(r.name).on("click", () => openPlayer(r.name));
+      svg.append("rect").attr("x", x(0)).attr("y", cy - 8).attr("height", 16).attr("rx", 4).attr("width", Math.max(2, x(Math.min(v, lim)) - x(0))).attr("fill", col[lv]).attr("opacity", 0.85)
+        .on("mousemove", (ev) => tip.show(ev, [r.name, `${M.lab}: ${asymTxt(r[k]).replace(" ", "% ")}`, a == null ? "" : `${fsgn(v - a)} pts vs team avg`])).on("mouseleave", tip.hide);
+      svg.append("text").attr("x", x(Math.min(v, lim)) + 6).attr("y", cy + 4).attr("fill", css("--fg")).style("font-size", "11.5px").style("font-weight", 600).text(asymTxt(r[k]).replace(" ", "% "));
+    });
+    if (a != null) {
+      svg.append("line").attr("x1", x(a)).attr("x2", x(a)).attr("y1", m.t - 6).attr("y2", H - m.b).attr("stroke", css("--fg")).attr("stroke-width", 1.5).attr("stroke-dasharray", "5 4");
+    }
+    const lg = [["Balanced", col.ok], ["Watch", col.warn], ["Large gap", col.bad]].map(([t, c]) => { const sp = el("span"); const i = el("i"); i.style.background = c; sp.append(i, t); return sp; });
+    const tl = el("span"); const ti = el("i"); ti.style.cssText = "background:none;border-left:2px dashed " + css("--fg") + ";border-radius:0;width:0;height:12px"; tl.append(ti, `Team avg ${a == null ? "" : f1(a) + "%"}`); lg.push(tl);
+    $("symLegend").replaceChildren(...lg);
   }
 
   // ---------- DATA ----------
@@ -1750,7 +1880,7 @@ body.dragging .dropveil{display:grid}
     if (h === "plans") h = "profiles";
     if (h === "report" || h === "coach-report") { setReportKind("coach"); h = "reports"; }
     if (h === "player-report") { setReportKind("player"); h = "reports"; }
-    view = ["home", "profiles", "readiness", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+    view = ["home", "profiles", "readiness", "symmetry", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -1760,9 +1890,9 @@ body.dragging .dropveil{display:grid}
   document.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove("dragging"); });
   document.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging"); const f = [...(e.dataTransfer?.files || [])].filter((x) => /\.csv$/i.test(x.name) || x.type === "text/csv"); if (f.length) addFiles(f); else toast("Drop a .csv file from ForceDecks."); });
   $("dateSel").addEventListener("change", (e) => { date = e.target.value; render(); });
-  document.querySelectorAll("#roster th button, #dtable th button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("#roster th button, #dtable th button, #symtable th button").forEach((b) => b.addEventListener("click", () => {
     const id = b.closest("table").id, k = b.dataset.k, s = sorts[id];
-    if (s[0] === k) s[1] = -s[1]; else { s[0] = k; s[1] = ["name", "qorder", "flagtxt", "score"].includes(k) ? 1 : -1; } render();
+    if (s[0] === k) s[1] = -s[1]; else { s[0] = k; s[1] = ["name", "qorder", "flagtxt", "score", "symstatus"].includes(k) ? 1 : -1; } render();
   }));
   ["roster", "dtable"].forEach((id) => { const t = $(id); t.addEventListener("click", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr) openPlayer(tr.dataset.name); }); t.addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr && e.key === "Enter") openPlayer(tr.dataset.name); }); });
   // extra hours events
@@ -1802,6 +1932,8 @@ body.dragging .dropveil{display:grid}
   window.addEventListener("resize", closePop);
   $("pdfBtn").addEventListener("click", downloadPDF);
   document.querySelectorAll("#rpSeg button").forEach((b) => b.addEventListener("click", () => { setReportKind(b.dataset.k); renderReports(); }));
+  document.querySelectorAll("#symMetric button").forEach((b) => b.addEventListener("click", () => { symM = b.dataset.m; renderSymmetry(); }));
+  $("symPlayer").addEventListener("change", (e) => { symP = e.target.value; renderSymmetry(); });
   $("prSel").addEventListener("change", (e) => { prName = e.target.value; renderPlayerReport(); });
   $("prPrev").addEventListener("click", () => stepPlayer(-1));
   $("prNext").addEventListener("click", () => stepPlayer(1));
