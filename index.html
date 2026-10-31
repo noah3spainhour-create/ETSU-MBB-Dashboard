@@ -297,8 +297,7 @@ body.dragging .dropveil{display:grid}
 </div></header>
 <nav class="tabs" aria-label="Sections"><div class="wrap">
   <a href="#home" data-v="home">Home</a>
-  <a href="#profiles" data-v="profiles">Jumper profiles</a>
-  <a href="#plans" data-v="plans">Exercise plans</a>
+  <a href="#profiles" data-v="profiles">Quadrant</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
   <a href="#program" data-v="program">Program builder</a>
   <a href="#reports" data-v="reports">Reports</a>
@@ -344,20 +343,9 @@ body.dragging .dropveil{display:grid}
 
   <!-- PROFILES -->
   <section class="view" id="v-profiles">
-    <div class="pagehead"><div><h2>Jumper profiles</h2><p>Each player's jump height (how much output) against RSI-modified (how fast he gets it). The dividing lines are the team averages for the selected test, so types are relative to this roster.</p></div></div>
+    <div class="pagehead"><div><h2>Quadrant</h2><p>Each player's jump height (how much output) against RSI-modified (how fast he gets it). The dividing lines are the team averages for the selected test, so types are relative to this roster.</p></div></div>
     <div class="card"><div class="box" id="quad" style="min-height:460px"></div></div>
     <div class="qcards" id="qcards"></div>
-  </section>
-
-  <!-- PLANS -->
-  <section class="view" id="v-plans">
-    <div class="pagehead"><div><h2>Exercise plans</h2><p>For each player: four squat and four hinge variations picked for his jumper type — to keep him performing or to fix what's holding him back — plus single-leg work aimed at his weaker side when his legs are more than 10% apart. Adjust for training history and any injury status.</p></div>
-      <button class="btn noprint" id="printBtn">Print plans</button></div>
-    <div class="toolbar">
-      <div class="seg" id="planFilter" role="group" aria-label="Filter by type"></div>
-      <input class="search" id="planSearch" type="search" placeholder="Search player" aria-label="Search player">
-    </div>
-    <div class="plans" id="plans"></div>
   </section>
 
   <!-- READINESS -->
@@ -693,7 +681,7 @@ body.dragging .dropveil{display:grid}
   }
 
   // ================= state & render =================
-  let A = { rows: [], team: [] }, date = null, view = "home", planQ = "all", planQuery = "";
+  let A = { rows: [], team: [] }, date = null, view = "home";
   const sorts = { roster: ["score", 1], dtable: ["name", 1] };
   const asymTxt = (v) => (v == null ? "—" : Math.abs(v) < 0.05 ? "0" : f1(Math.abs(v)).replace(/\.0$/, "") + (v > 0 ? " L" : " R"));
   const asymCls = (v) => (v == null ? "" : Math.abs(v) > 15 ? "bad" : Math.abs(v) > 10 ? "warn" : "");
@@ -720,7 +708,6 @@ body.dragging .dropveil{display:grid}
     if (!has) return;
     if (view === "home") renderHome();
     if (view === "profiles") renderProfiles();
-    if (view === "plans") renderPlans();
     if (view === "readiness") renderReadiness();
     if (view === "reports") renderReports();
   }
@@ -842,37 +829,26 @@ body.dragging .dropveil{display:grid}
     });
   }
 
-  // ---------- PLANS ----------
-  function renderPlans() {
-    const cur = curRows();
-    const pf = $("planFilter"); pf.replaceChildren();
-    [["all", "All"], ["asym", "Has imbalance"], ...QKEYS.map((q) => [q, Q[q].name])].forEach(([k, label]) => {
-      const n = k === "all" ? cur.length : k === "asym" ? cur.filter(hasImb).length : cur.filter((r) => r.q === k).length;
-      const b = el("button", "", `${label} (${n})`); b.setAttribute("aria-pressed", String(planQ === k)); b.onclick = () => { planQ = k; render(); }; pf.appendChild(b);
-    });
-    const box = $("plans"); box.replaceChildren();
-    const list = cur.filter((r) => (planQ === "all" || (planQ === "asym" ? hasImb(r) : r.q === planQ)) && r.name.toLowerCase().includes(planQuery.toLowerCase())).sort((a, b) => a.qorder - b.qorder || a.name.localeCompare(b.name));
-    if (!list.length) box.appendChild(el("div", "muted", "No players match."));
-    list.forEach((r) => {
-      const { base, fix, notes, adj } = planFor(r);
-      const c = el("article", "plan"); c.style.setProperty("--qc", css(base.color)); c.id = "plan-" + r.name.replace(/\W+/g, "-");
-      const h = el("div", "ph"); const left = el("div"); const nm = el("div", "pn", r.name); nm.onclick = () => openPlayer(r.name); left.appendChild(nm);
-      const meta = el("div", "meta"); meta.appendChild(qPill(r.q)); meta.appendChild(bandPill(r.band)); if (hasImb(r)) meta.appendChild(el("span", "pill p-mon", "Imbalance")); left.appendChild(meta);
-      h.append(left, scoreBox(r)); c.appendChild(h);
-      const goal = el("div", "focus"); goal.appendChild(el("b", "", "Goal: ")); goal.append(base.goal); c.appendChild(goal);
-      c.appendChild(el("div", "adj " + adj[0], adj[1]));
-      const sec = (title, items) => { const s = el("div", "ex"); s.appendChild(el("h5", "", title)); const ul = el("ul"); items.forEach(([n, rx, why]) => { const li = el("li"); const l = el("div"); l.appendChild(el("b", "", n)); l.appendChild(el("span", "why", why)); li.append(l, el("span", "rx", rx)); ul.appendChild(li); }); s.appendChild(ul); c.appendChild(s); };
-      sec("Squat pattern — pick 1–2 per session", base.squat);
-      sec("Hinge pattern — pick 1–2 per session", base.hinge);
-      if (fix.length || notes.length) {
-        const s = el("div", "ex imb"); s.appendChild(el("h5", "", "Imbalance work — add 2 per session"));
-        notes.forEach((n) => s.appendChild(el("div", "imbnote", n)));
-        if (fix.length) { const ul = el("ul"); fix.forEach(([n, rx, why]) => { const li = el("li"); const l = el("div"); l.appendChild(el("b", "", n)); l.appendChild(el("span", "why", why)); li.append(l, el("span", "rx", rx)); ul.appendChild(li); }); s.appendChild(ul); }
-        c.appendChild(s);
-      } else { const s = el("div", "ex"); s.appendChild(el("h5", "", "Imbalance work")); s.appendChild(el("div", "muted", "Left and right legs are within 10% — no extra single-leg work needed.")); c.appendChild(s); }
-      const rn = r.flags.filter((f) => f.short.startsWith("BW") || /rep/.test(f.short)); if (rn.length) { const n = el("div", "muted", rn.map((f) => f.text).join(" ")); n.style.cssText = "font-size:12.5px;margin-top:10px"; c.appendChild(n); }
-      box.appendChild(c);
-    });
+  // ---------- RECOMMENDED EXERCISES (shown in each player's profile) ----------
+  function planCard(r) {
+    const { base, fix, notes, adj } = planFor(r);
+    const c = el("div", "card plan"); c.style.setProperty("--qc", css(base.color));
+    c.appendChild(el("h3", "", "Recommended exercises"));
+    const intro = el("p", "note", `Four squat and four hinge variations picked for his jumper type (${Q[r.q].name}), plus single-leg work for his weaker side when his legs are more than 10% apart. Adjust for training history and any injury status.`); c.appendChild(intro);
+    const goal = el("div", "focus"); goal.appendChild(el("b", "", "Goal: ")); goal.append(base.goal); c.appendChild(goal);
+    c.appendChild(el("div", "adj " + adj[0], adj[1]));
+    const list = (items) => { const ul = el("ul"); items.forEach(([n, rx, why]) => { const li = el("li"); const l = el("div"); l.appendChild(el("b", "", n)); l.appendChild(el("span", "why", why)); li.append(l, el("span", "rx", rx)); ul.appendChild(li); }); return ul; };
+    const sec = (title, items) => { const s = el("div", "ex"); s.appendChild(el("h5", "", title)); s.appendChild(list(items)); c.appendChild(s); };
+    sec("Squat pattern — pick 1–2 per session", base.squat);
+    sec("Hinge pattern — pick 1–2 per session", base.hinge);
+    if (fix.length || notes.length) {
+      const s = el("div", "ex imb"); s.appendChild(el("h5", "", "Imbalance work — add 2 per session"));
+      notes.forEach((n) => s.appendChild(el("div", "imbnote", n)));
+      if (fix.length) s.appendChild(list(fix));
+      c.appendChild(s);
+    } else { const s = el("div", "ex"); s.appendChild(el("h5", "", "Imbalance work")); s.appendChild(el("div", "muted", "Left and right legs are within 10% — no extra single-leg work needed.")); c.appendChild(s); }
+    const rn = r.flags.filter((f) => f.short.startsWith("BW") || /rep/.test(f.short)); if (rn.length) { const n = el("div", "muted", rn.map((f) => f.text).join(" ")); n.style.cssText = "font-size:12.5px;margin-top:10px"; c.appendChild(n); }
+    return c;
   }
   const hasImb = (r) => r.decel_abs > 10 || r.conc_abs > 10 || r.land_abs > 15;
 
@@ -1472,6 +1448,7 @@ body.dragging .dropveil{display:grid}
     b.appendChild(stats);
     if (r.flags.length) { const fc = el("div", "card"); fc.appendChild(el("h3", "", "Flags")); const d = el("div", "defs"); d.style.marginTop = "6px"; r.flags.forEach((f) => d.appendChild(el("div", f.level, f.text))); fc.appendChild(d); b.appendChild(fc); }
     b.appendChild(anatomyCard(r));
+    b.appendChild(planCard(r));
     const hist = A.rows.filter((o) => o.name === name).sort((a, c) => (a.date < c.date ? -1 : 1)), dates = A.team.map((t) => t.date);
     const mk = (title) => { const c = el("div", "card"); c.appendChild(el("h3", "", title)); const bx = el("div", "box"); c.appendChild(bx); b.appendChild(c); return bx; };
     const muted = css("--chart-muted"), n = (o) => (o.bw_flag ? "BW reading off" : "");
@@ -1481,8 +1458,6 @@ body.dragging .dropveil{display:grid}
     lineChart(b2, dates, [{ name: "Team", color: muted, pts: A.team.map((t) => ({ d: t.date, v: t.rsi, hollow: t.bw_issue })) }, { name, color: css("--c2"), pts: hist.map((o) => ({ d: o.date, v: o.rsi, hollow: o.bw_flag, note: n(o) })) }], { fmt: f2, title: "m/s", sel: date });
     const hs = hist.filter((o) => o.score != null);
     if (hs.length) { const b3 = mk("Readiness"); lineChart(b3, dates, [{ name: "Readiness", color: css("--c3"), pts: hs.map((o) => ({ d: o.date, v: o.score })) }], { fmt: d3.format("d"), title: "1–10", sel: date, domain: [1, 10] }); }
-    const pl = el("button", "btn", "Open his exercise plan →"); pl.onclick = () => { closeDrawer(); planQ = "all"; planQuery = ""; $("planSearch").value = ""; location.hash = "plans"; setTimeout(() => { const t = document.getElementById("plan-" + name.replace(/\W+/g, "-")); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); };
-    b.appendChild(pl);
     const rp = el("button", "btn", "Open his player report →"); rp.onclick = () => { closeDrawer(); prName = name; setReportKind("player"); location.hash = "reports"; }; b.appendChild(rp);
     $("drawer").classList.add("open"); $("scrim").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("dClose").focus();
   }
@@ -1772,9 +1747,10 @@ body.dragging .dropveil{display:grid}
   }
   function route() {
     let h = location.hash.replace("#", "");
+    if (h === "plans") h = "profiles";
     if (h === "report" || h === "coach-report") { setReportKind("coach"); h = "reports"; }
     if (h === "player-report") { setReportKind("player"); h = "reports"; }
-    view = ["home", "profiles", "plans", "readiness", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+    view = ["home", "profiles", "readiness", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -1789,8 +1765,6 @@ body.dragging .dropveil{display:grid}
     if (s[0] === k) s[1] = -s[1]; else { s[0] = k; s[1] = ["name", "qorder", "flagtxt", "score"].includes(k) ? 1 : -1; } render();
   }));
   ["roster", "dtable"].forEach((id) => { const t = $(id); t.addEventListener("click", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr) openPlayer(tr.dataset.name); }); t.addEventListener("keydown", (e) => { const tr = e.target.closest("tr[data-name]"); if (tr && e.key === "Enter") openPlayer(tr.dataset.name); }); });
-  $("planSearch").addEventListener("input", (e) => { planQuery = e.target.value; renderPlans(); });
-  $("printBtn").addEventListener("click", () => { $("v-plans").classList.add("print"); window.print(); setTimeout(() => $("v-plans").classList.remove("print"), 500); });
   // extra hours events
   const xhShift = (d) => { const t = new Date(xhDate + "T12:00:00"); t.setDate(t.getDate() + d); xhDate = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; renderExtra(); };
   $("xhDate").addEventListener("change", (e) => { if (e.target.value) { xhDate = e.target.value; renderExtra(); } });
