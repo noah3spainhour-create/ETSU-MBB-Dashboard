@@ -121,10 +121,11 @@ td .pname{font-weight:600}
 .bal-team{position:absolute;top:-3px;bottom:-3px;width:0;border-left:1.5px dashed var(--muted);opacity:.7}
 .bal-bar{position:absolute;top:4px;height:12px}
 .bal-val{text-align:right;font-weight:700;font-size:14px;white-space:nowrap}
-.bal-val small{display:block;font-size:11.5px;font-weight:500;color:var(--muted)}
+.bal-val small{display:block;font-size:11.5px;font-weight:500;color:var(--muted);white-space:normal}
 .bal .ok,.bal-bar.ok{color:var(--ok)}.bal-bar.ok{background:var(--ok)}
 .bal .warn{color:var(--warn)}.bal-bar.warn{background:var(--warn)}
 .bal .bad{color:var(--bad)}.bal-bar.bad{background:var(--bad)}
+@media(min-width:561px){.bal.in-drawer .bal-rows{grid-template-columns:84px 1fr 132px;column-gap:12px}}
 .bal-foot{font-size:11.5px;color:var(--muted);margin-top:10px}
 @media(max-width:560px){.bal{padding:12px 12px 10px}.bal-rows{column-gap:10px;grid-template-columns:78px 1fr 112px}.bal-lab,.bal-val{font-size:13px}}
 
@@ -1265,10 +1266,10 @@ body.dragging .dropveil{display:grid}
   const fsgn = (v) => { if (v == null) return "—"; const t = f1(Math.abs(v)).replace(/\.0$/, ""); return (t === "0" ? "±" : v > 0 ? "+" : "−") + t; };
   const balTxt = (v) => (Math.abs(v) < 0.5 ? "Even" : `${Math.round(Math.abs(v))}% more ${v > 0 ? "left" : "right"}`);
   function symPrev(r) { return A.rows.filter((o) => o.name === r.name && o.date < r.date).sort((a, b) => (a.date < b.date ? -1 : 1)).pop() || null; }
-  function balCard(r, avg) {
+  function balCard(r, avg, inDrawer) {
     const c = el("article", "bal"), lv = Object.keys(SYM).map((k) => symLvl(r[k]));
     const h = el("div", "bal-h"), left = el("div");
-    const nm = el("div", "bal-n", r.name); nm.onclick = () => openPlayer(r.name); left.appendChild(nm);
+    if (!inDrawer) { const nm = el("div", "bal-n", r.name); nm.onclick = () => openPlayer(r.name); left.appendChild(nm); }
     left.appendChild(el("div", "bal-cap", "Left-right balance")); h.appendChild(left);
     const st = r.max_asym == null ? ["p-none", "No data"] : lv.includes("bad") ? ["p-fat", "Large gap"] : lv.includes("warn") ? ["p-mon", "Watch"] : ["p-ready", "Balanced"];
     const rt = el("div"); rt.style.textAlign = "right"; rt.appendChild(el("span", "pill " + st[0], st[1])); rt.appendChild(el("div", "bal-sub", "Under 10% is balanced.")); h.appendChild(rt);
@@ -1559,6 +1560,7 @@ body.dragging .dropveil{display:grid}
     stat(f2(r.rsi), "RSI-mod" + (r.rsi_chg == null ? "" : ` · ${pct(r.rsi_chg)}`));
     b.appendChild(stats);
     if (r.flags.length) { const fc = el("div", "card"); fc.appendChild(el("h3", "", "Flags")); const d = el("div", "defs"); d.style.marginTop = "6px"; r.flags.forEach((f) => d.appendChild(el("div", f.level, f.text))); fc.appendChild(d); b.appendChild(fc); }
+    if (r.max_asym != null) { const day = A.rows.filter((o) => o.date === r.date), av = {}; Object.keys(SYM).forEach((k) => (av[k] = symAvg(day, k))); const bc = balCard(r, av, true); bc.classList.add("in-drawer"); b.appendChild(bc); }
     b.appendChild(anatomyCard(r));
     b.appendChild(planCard(r));
     const hist = A.rows.filter((o) => o.name === name).sort((a, c) => (a.date < c.date ? -1 : 1)), dates = A.team.map((t) => t.date);
