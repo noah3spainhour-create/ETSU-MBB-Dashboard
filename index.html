@@ -358,6 +358,9 @@ body.dragging .dropveil{display:grid}
 .lc-main td.sc{white-space:nowrap;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 .lc-main .nt{display:block;font-size:12px;color:var(--muted)}
 .lc-extra{font-size:13px;color:var(--muted);margin:0}
+.lc-notes{display:grid;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.lc-notes label{font-weight:600;font-size:13px}.lc-notes .muted{font-size:12px}
+.lc-notes textarea{resize:vertical;min-height:64px;line-height:1.4}
 .lc-who{font-size:13px;display:grid;gap:4px}
 .lc-who div b{font-weight:600}
 .hl-card{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline}
@@ -529,7 +532,8 @@ body.dragging .dropveil{display:grid}
     </div>
     <div class="card"><h3>Keeping it up to date</h3><div class="defs" style="margin-top:8px">
       <div>Keep programming in the Excel workbook. When you add or change a week, click <b>Update from Excel</b> and pick the file — the calendar updates right away in this browser. Only the lifting tabs are read; max, weight, body composition and testing tabs are skipped.</div>
-      <div>To update it for every coach, click <b>Download lifts.json</b> and upload it to the GitHub <b>data</b> folder (replace the old one). Upload the <b>lifts.json</b>, not the Excel file — the repository is public and the workbook has player data in it.</div>
+      <div>Each lift has a <b>Notes</b> box. Notes save in this browser as you type and stay with that day even after you re-read the workbook; a ✎ on the calendar means a day has notes.</div>
+      <div>To update it for every coach — program and notes — click <b>Download lifts.json</b> and upload it to the GitHub <b>data</b> folder (replace the old one). Upload the <b>lifts.json</b>, not the Excel file — the repository is public and the workbook has player data in it.</div>
     </div></div>
   </section>
 
@@ -2273,7 +2277,13 @@ body.dragging .dropveil{display:grid}
   }
 
   // ================= LIFT CALENDAR =================
-  const LC_KEY = "etsu-lifts-v1";
+  const LC_KEY = "etsu-lifts-v1", LC_NOTES_KEY = "etsu-lift-notes-v1";
+  // coach notes per lift day: kept by date + day name so they survive re-reading the workbook
+  let lcNotesLocal = (() => { try { return JSON.parse(localStorage.getItem(LC_NOTES_KEY) || "{}"); } catch (e) { return {}; } })();
+  const lcNoteKey = (b) => (b.date ? b.date + "|" : b.sheet + "|") + String(b.title).toLowerCase().trim();
+  const lcNotesAll = () => { const out = { ...((LIFTS && LIFTS.notes) || {}) }; Object.entries(lcNotesLocal).forEach(([k, v]) => { if (!out[k] || (v.at || "") >= (out[k].at || "")) out[k] = v; }); Object.keys(out).forEach((k) => { if (!out[k] || !String(out[k].text || "").trim()) delete out[k]; }); return out; };
+  const lcNote = (b) => { const n = lcNotesAll()[lcNoteKey(b)]; return n ? n.text : ""; };
+  function lcSetNote(b, text) { lcNotesLocal[lcNoteKey(b)] = { text, at: new Date().toISOString() }; try { localStorage.setItem(LC_NOTES_KEY, JSON.stringify(lcNotesLocal)); return true; } catch (e) { return false; } }
   let LIFTS = null, lcSel = null, lcMonth = null, SCHED = null, lcShowOpt = null;
   // games on a day: team schedule plus any game entered in Game Load on a date the schedule doesn't have
   function calGames(iso) {
@@ -2316,6 +2326,11 @@ body.dragging .dropveil{display:grid}
       const wrap = el("div", "tablebox"); wrap.appendChild(t); box.appendChild(wrap);
     }
     (b.extra || []).forEach((x) => box.appendChild(el("p", "lc-extra", x)));
+    const nw = el("div", "lc-notes"), lab = el("label", "", "Notes"), ta = document.createElement("textarea"), st = el("span", "muted");
+    const nid = "lcn-" + lcNoteKey(b).replace(/[^a-z0-9]+/gi, "-"); ta.id = nid; lab.htmlFor = nid;
+    ta.className = "xh-in"; ta.rows = 3; ta.placeholder = "Add notes for this lift…"; ta.value = lcNote(b);
+    let nt; ta.oninput = () => { clearTimeout(nt); st.textContent = "Saving…"; nt = setTimeout(() => { st.textContent = lcSetNote(b, ta.value) ? "Saved in this browser · download lifts.json to share" : "This browser can't save notes"; }, 400); };
+    const top = el("div", "toolbar"); top.style.justifyContent = "space-between"; top.append(lab, st); nw.append(top, ta); box.appendChild(nw);
     return box;
   }
 
@@ -2360,7 +2375,7 @@ body.dragging .dropveil{display:grid}
       if (!gd && (gNext || gPrev)) top.appendChild(el("span", "lc-g", gNext ? "G−1" : "G+1")); else if (gd) top.appendChild(el("span", "lc-g gday", "GAME"));
       b.appendChild(top);
       b.setAttribute("aria-label", `${lcDayLong(iso)}${bl.length ? ": " + bl.map((x) => x.title).join(", ") : ""}${gm.length ? ", game " + gm.map(gTag).join(", ") : ""}`);
-      bl.forEach((x) => { const c = el("span", "lc-chip" + (lcOptional(x) ? " opt" : ""), x.title + (x.forcePlate ? " · FP" : "")); c.title = `${x.sheet} · ${x.title}`; b.appendChild(c); });
+      bl.forEach((x) => { const c = el("span", "lc-chip" + (lcOptional(x) ? " opt" : ""), x.title + (x.forcePlate ? " · FP" : "") + (lcNote(x) ? " ✎" : "")); c.title = `${x.sheet} · ${x.title}${lcNote(x) ? " · has notes" : ""}`; b.appendChild(c); });
       gm.forEach((g) => { const c = el("span", "lc-chip game", gTag(g) + (g.time ? " " + gShortTime(g.time) : "") + (g.tentative ? " ?" : "")); c.title = [gTag(g), g.time, g.site, g.note].filter(Boolean).join(" · "); b.insertBefore(c, b.children[1] || null); });
       b.onclick = () => { lcSel = iso; if (iso.slice(0, 7) !== lcMonth) lcMonth = iso.slice(0, 7); renderLifts(); $("lcDayTitle").scrollIntoView({ behavior: "smooth", block: "start" }); };
       cal.appendChild(b);
@@ -2377,7 +2392,7 @@ body.dragging .dropveil{display:grid}
       const out = window.LiftParse.parseWorkbook(X, wb, f.name);
       if (!out.blocks.length) { toast("No dated lift days found in that file."); return; }
       try { localStorage.setItem(LC_KEY, JSON.stringify(out)); } catch (e) { /* too big or blocked */ }
-      LIFTS = { ...out, local: true };
+      out.notes = lcNotesAll(); LIFTS = { ...out, local: true };
       const dated = out.blocks.filter((b) => b.date);
       toast(`Read ${dated.length} lift days from ${out.sheets.length} weeks. Download lifts.json and upload it to share with staff.`);
       render();
@@ -2400,7 +2415,7 @@ body.dragging .dropveil{display:grid}
       if (b.forcePlate) d.appendChild(el("span", "pill p-mon", "Force plate test"));
       (b.notes || []).forEach((n) => d.appendChild(el("span", "pill p-none", n.replace(/^\*/, ""))));
       const ol = el("ol"); b.groups.forEach((g) => g.ex.forEach((e) => { const li = el("li"); li.append(el("b", "", e.label + " "), e.name + " — " + lcX(e.scheme)); ol.appendChild(li); }));
-      d.appendChild(ol); box.appendChild(d);
+      d.appendChild(ol); const nn = lcNote(b); if (nn) { const p = el("p", "lc-extra"); p.style.cssText = "margin:4px 0 0;flex-basis:100%;white-space:pre-wrap"; p.append(el("b", "", "Notes: "), nn); d.appendChild(p); } box.appendChild(d);
     });
   }
   let lcBound = false;
@@ -2408,7 +2423,7 @@ body.dragging .dropveil{display:grid}
     if (lcBound) return; lcBound = true;
     $("lcFile").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) lcFromFile(f); });
     $("lcFileBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("lcFile").click(); } });
-    $("lcDl").addEventListener("click", () => { if (!LIFTS) return; const { local, ...out } = LIFTS; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: "application/json" })); a.download = "lifts.json"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
+    $("lcDl").addEventListener("click", () => { if (!LIFTS) return; const { local, ...out } = LIFTS; out.notes = lcNotesAll(); const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: "application/json" })); a.download = "lifts.json"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
     $("lcPrevD").addEventListener("click", () => { lcSel = addDays(lcSel, -1); lcMonth = lcSel.slice(0, 7); renderLifts(); });
     $("lcNextD").addEventListener("click", () => { lcSel = addDays(lcSel, 1); lcMonth = lcSel.slice(0, 7); renderLifts(); });
     $("lcToday").addEventListener("click", () => { lcSel = isoToday(); lcMonth = lcSel.slice(0, 7); renderLifts(); });
