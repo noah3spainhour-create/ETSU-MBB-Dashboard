@@ -450,7 +450,7 @@ body.dragging .dropveil{display:grid}
     </div>
     <div class="kpis" id="glKpis"></div>
     <div class="grid3">
-      <div class="card"><h3>Minutes vs readiness</h3><p class="note">Each dot is a player: minutes in the last 7 days across, latest jump readiness up. Top right is handling heavy minutes, bottom right is wearing down, top left has legs to spare. Click a dot for his profile.</p><div class="box" id="glScatter" style="min-height:340px"></div><div class="legend" id="glLegend"></div></div>
+      <div class="card"><h3>Minutes vs readiness</h3><p class="note">Each dot is a player: minutes per game over the last 7 days across (out of 40), latest jump readiness up. Top right is handling heavy minutes, bottom right is wearing down, top left has legs to spare. Click a dot for his profile.</p><div class="box" id="glScatter" style="min-height:340px"></div><div class="legend" id="glLegend"></div></div>
       <div class="card"><h3>Who needs what</h3><p class="note">Grouped by next step.</p><div class="defs" id="glGroups"></div></div>
     </div>
     <div class="gl-cards" id="glCards"></div>
@@ -458,7 +458,7 @@ body.dragging .dropveil{display:grid}
       <select id="glPlayer" aria-label="Player" style="min-width:180px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select></div>
       <p class="note" id="glPNote" style="margin-top:8px"></p><div class="box" id="glTrend"></div><div class="legend" id="glTrendLegend"></div></div>
     <div class="card"><h3>How it decides</h3><div class="defs" style="margin-top:8px">
-      <div><b>Game load</b> is his minutes in the 7 days up to the "as of" date. <b>Heavy</b>: 60+ minutes, or 32+ in one game, or a big jump over his usual week. <b>Moderate</b>: 25–59. <b>Light</b>: under 25. <b>DNP</b>: 0.</div>
+      <div><b>Game load</b> is his share of the available minutes in his games over the 7 days up to the "as of" date — 40 per game, plus 5 per overtime — so it reads the same whether the week has one game or three. <b>Heavy</b>: 70%+ (about 28+ a game), or 34+ in any one game, or a big jump over his usual week. <b>Moderate</b>: 40–69% (about 16–27 a game). <b>Light</b>: under 40% (under 16 a game). <b>DNP</b>: 0.</div>
       <div><b>Readiness</b> is his latest jump test score (1–10 vs his own baseline) from the Readiness tab.</div>
       <div><b>Recover</b> = heavy minutes + fatigued. <b>Manage</b> = heavy + monitor. <b>Handling it</b> = heavy + ready. <b>Check in</b> = fatigued without heavy minutes, so something besides games is wearing on him. <b>Top-up</b> = light minutes or DNP with fresh legs: add conditioning so his fitness keeps up with the guys playing. <b>On track</b> = everything else.</div>
       <div><b>Minutes spike</b>: last 7 days is 1.5× or more his average week over the 3 weeks before (needs 2 weeks of games). <b>Minutes drop</b>: half or less. <b>Retest</b> is suggested when his last jump came before games he's played since.</div>
@@ -1981,7 +1981,7 @@ body.dragging .dropveil{display:grid}
       rec: "Normal routine. Keep up sleep and recovery habits.", test: "Normal weekly test." },
     normal: { label: "On track", pill: "p-none", color: "--chart-muted", order: 5,
       why: "Moderate minutes and a normal jump.",
-      lift: "Run it as written.", cond: "Short top-up only after a game where he plays under 15 minutes.",
+      lift: "Run it as written.", cond: "Short top-up only after a game where he plays under 16 minutes.",
       rec: "Normal routine.", test: "Normal weekly test." }
   };
   const ACT_KEYS = Object.keys(ACT).sort((a, b) => ACT[a].order - ACT[b].order);
@@ -2002,11 +2002,12 @@ body.dragging .dropveil{display:grid}
     const playedGames = mine.filter((m) => m.min > 0), mpg = mine.length ? d3.mean(mine, (m) => m.min) : null;
     const wDates = played.filter((g) => inW(g, 0, 6)).map((g) => g.date).sort();
     const b2b = wDates.some((d, i) => i && dayDiff(d, wDates[i - 1]) === 1);
-    const big1 = e7.some((m) => m.min >= 32);
+    const avail7 = d3.sum(e7, (m) => 40 + 5 * (m.g.ot || 0)), share = avail7 ? m7 / avail7 : 0, mpg7 = e7.length ? m7 / e7.length : 0;
+    const big1 = e7.some((m) => m.min >= 34);
     const spike = ratio != null && ratio >= 1.5 && m7 >= 40, drop = ratio != null && ratio <= 0.5 && chronic >= 40;
     let level;
     if (!g7) level = "off"; else if (!e7.length) level = "unk";
-    else if (m7 >= 60 || big1 || spike) level = "high"; else if (m7 >= 25) level = "mod"; else if (m7 > 0) level = "low"; else level = "none";
+    else if (share >= 0.7 || big1 || spike) level = "high"; else if (share >= 0.4) level = "mod"; else if (m7 > 0) level = "low"; else level = "none";
 
     const tests = A.rows.filter((r) => r.name === name && r.date <= asOf).sort((a, b) => (a.date < b.date ? -1 : 1));
     const t = tests[tests.length - 1] || null, scored = t && t.score != null, b = scored ? t.band : "none";
@@ -2036,13 +2037,13 @@ body.dragging .dropveil{display:grid}
     }
     // how he has responded to big minutes before (tests 1–3 days after a game)
     const resp = tests.filter((r) => r.rsi_chg != null && !r.bw_flag).map((r) => ({ r, pre: d3.sum(mine.filter((m) => { const d = dayDiff(r.date, m.date); return d >= 1 && d <= 3; }), (m) => m.min) }));
-    const hi = resp.filter((x) => x.pre >= 25);
-    if (hi.length >= 2) { const avg = d3.mean(hi, (x) => x.r.rsi_chg); notes.push([avg <= -0.05 ? "warn" : "muted", `After 25+ minute games his RSI-mod has averaged ${pct(avg)} vs baseline (${hi.length} tests) — ${avg <= -0.05 ? "he needs more recovery than most after big games." : "he's been bouncing back well."}`]); }
+    const hi = resp.filter((x) => x.pre >= 28);
+    if (hi.length >= 2) { const avg = d3.mean(hi, (x) => x.r.rsi_chg); notes.push([avg <= -0.05 ? "warn" : "muted", `After 28+ minute games his RSI-mod has averaged ${pct(avg)} vs baseline (${hi.length} tests) — ${avg <= -0.05 ? "he needs more recovery than most after big games." : "he's been bouncing back well."}`]); }
 
     const A_ = ACT[act];
     let cond = A_.cond, lift = A_.lift;
     if (act === "topup") {
-      cond = level === "none" || m7 < 10
+      cond = level === "none" || mpg7 < 10
         ? "Full game replacement after games or the next day: 6–8 × 60 s at game pace with 60 s rest, then 4 × 20 m sprints."
         : "Half replacement after games: 4 × 60 s at game pace with 60 s rest.";
       if (b === "mon") lift = "Run it as written, cap the top sets at RPE 8.";
@@ -2055,7 +2056,7 @@ body.dragging .dropveil{display:grid}
       why = act === "check" ? `${w}, and his jump is down — something besides games is wearing on him.` : `${w} — this is his jump readiness on its own.`;
       if (act === "normal") cond = "Normal practice conditioning.";
     }
-    return { why, name, asOf, level, act, m7, g7, p7, chronic, ratio, last, lastAny, mpg, gp: playedGames.length, gl: mine.length, b2b, spike, drop, t, scored, band: b, notes, plan: { lift, cond, rec: A_.rec, test: since.length ? "Retest 24–48 h after his next game." : A_.test } };
+    return { why, name, asOf, level, act, m7, mpg7, share, g7, p7, chronic, ratio, last, lastAny, mpg, gp: playedGames.length, gl: mine.length, b2b, spike, drop, t, scored, band: b, notes, plan: { lift, cond, rec: A_.rec, test: since.length ? "Retest 24–48 h after his next game." : A_.test } };
   }
 
   // ---------- render ----------
@@ -2152,20 +2153,20 @@ body.dragging .dropveil{display:grid}
     if (!pts.length) { box.appendChild(el("div", "empty", "Needs minutes from a game in the last 7 days and a scored jump test.")); box.firstChild.style.padding = "80px 10px"; return; }
     const W = Math.max(300, box.clientWidth || 600), H = 340, m = { t: 30, r: 18, b: 40, l: 40 };
     const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
-    const xmax = Math.max(80, d3.max(pts, (p) => p.m7) + 8), x = d3.scaleLinear([0, xmax], [m.l, W - m.r]), y = d3.scaleLinear([0.5, 10.5], [H - m.b, m.t]);
+    const xmax = Math.max(40, Math.ceil(d3.max(pts, (p) => p.mpg7))), x = d3.scaleLinear([0, xmax], [m.l, W - m.r]), y = d3.scaleLinear([0.5, 10.5], [H - m.b, m.t]);
     [[0.5, 4.5, "--badbg"], [4.5, 7.5, "--warnbg"], [7.5, 10.5, "--okbg"]].forEach(([a, b, c]) => svg.append("rect").attr("x", m.l).attr("width", W - m.l - m.r).attr("y", y(b)).attr("height", y(a) - y(b)).attr("fill", css(c)).attr("opacity", 0.55));
-    [25, 60].forEach((v) => { svg.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", css("--muted")).attr("stroke-dasharray", "4 4").attr("opacity", 0.6); svg.append("text").attr("x", x(v) + 4).attr("y", H - m.b - 6).attr("fill", css("--muted")).style("font-size", "11px").text(v === 25 ? "moderate" : "heavy"); });
+    [16, 28].forEach((v) => { svg.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", css("--muted")).attr("stroke-dasharray", "4 4").attr("opacity", 0.6); svg.append("text").attr("x", x(v) + 4).attr("y", H - m.b - 6).attr("fill", css("--muted")).style("font-size", "11px").text(v === 16 ? "moderate" : "heavy"); });
     svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
     svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues([1, 4, 7, 10]).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
-    svg.append("text").attr("x", (W + m.l) / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text("Minutes, last 7 days");
+    svg.append("text").attr("x", (W + m.l) / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text("Minutes per game, last 7 days (of 40)");
     svg.append("text").attr("transform", `translate(12,${(H - m.b + m.t) / 2}) rotate(-90)`).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text("Readiness");
     const tip = tipFor(box), jit = (n) => ((n.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) * 0.07;
-    const g = svg.selectAll(null).data(pts).join("g").attr("transform", (p) => `translate(${x(p.m7)},${y(p.t.score + jit(p.name))})`).style("cursor", "pointer")
-      .on("click", (ev, p) => openPlayer(p.name)).on("mousemove", (ev, p) => tip.show(ev, [p.name, `${Math.round(p.m7)} min in 7 days · readiness ${p.t.score}`, ACT[p.act].label])).on("mouseleave", tip.hide);
+    const g = svg.selectAll(null).data(pts).join("g").attr("transform", (p) => `translate(${x(p.mpg7)},${y(p.t.score + jit(p.name))})`).style("cursor", "pointer")
+      .on("click", (ev, p) => openPlayer(p.name)).on("mousemove", (ev, p) => tip.show(ev, [p.name, `${f1(p.mpg7).replace(/\.0$/, "")} min/game this week (${Math.round(p.m7)} total) · readiness ${p.t.score}`, ACT[p.act].label])).on("mouseleave", tip.hide);
     g.append("circle").attr("r", 7).attr("fill", (p) => css(ACT[p.act].color)).attr("stroke", css("--panel")).attr("stroke-width", 2);
     // keep names from overlapping: stagger labels of nearby dots
     const placed = [];
-    pts.slice().sort((a, c) => a.m7 - c.m7).forEach((p) => { const px = x(p.m7), py = y(p.t.score + jit(p.name)); let dy = 4; for (const o of [4, -10, 18, -24, 32]) { if (!placed.some((q) => Math.abs(q.x - px) < 62 && Math.abs(q.y - (py + o)) < 12)) { dy = o; break; } } p._dy = dy; placed.push({ x: px, y: py + dy }); });
+    pts.slice().sort((a, c) => a.mpg7 - c.mpg7).forEach((p) => { const px = x(p.mpg7), py = y(p.t.score + jit(p.name)); let dy = 4; for (const o of [4, -10, 18, -24, 32]) { if (!placed.some((q) => Math.abs(q.x - px) < 62 && Math.abs(q.y - (py + o)) < 12)) { dy = o; break; } } p._dy = dy; placed.push({ x: px, y: py + dy }); });
     g.append("text").attr("x", 10).attr("y", (p) => p._dy).attr("fill", css("--fg")).style("font-size", "11px").style("font-weight", 600).text((p) => p.name.split(" ").slice(-1)[0]);
     ACT_KEYS.filter((k) => pts.some((p) => p.act === k)).forEach((k) => { const s = el("span"); const i = el("i"); i.style.background = css(ACT[k].color); s.append(i, ACT[k].label); lg.appendChild(s); });
   }
