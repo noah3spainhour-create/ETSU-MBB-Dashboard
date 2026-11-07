@@ -510,7 +510,7 @@ body.dragging .dropveil{display:grid}
 
   <!-- LIFT CALENDAR -->
   <section class="view" id="v-lifts">
-    <div class="pagehead"><div><h2>Lift calendar</h2><p>Read straight from the team's lifting workbook. Every "Day" with a date lands on the calendar; optional days without a date show under their week.</p></div>
+    <div class="pagehead"><div><h2>Lift calendar</h2><p>Read straight from the team's lifting workbook. Every "Day" with a date lands on the calendar. Optional days are hidden — click a day to show them.</p></div>
       <div class="toolbar"><label class="btn btn-gold" for="lcFile" tabindex="0" id="lcFileBtn">⬆ Update from Excel</label><input type="file" id="lcFile" accept=".xlsx,.xlsm,.xls"><button class="btn" id="lcDl">⬇ Download lifts.json</button></div></div>
     <div class="muted" id="lcSrc" style="font-size:12.5px;margin-top:-8px"></div>
     <div class="card">
@@ -523,7 +523,7 @@ body.dragging .dropveil{display:grid}
     <div class="card">
       <div class="toolbar" style="justify-content:space-between;margin-bottom:10px">
         <div class="toolbar"><button class="btn" id="lcPrevM" aria-label="Previous month">‹</button><h3 id="lcMonth" style="margin:0 6px;min-width:150px;text-align:center"></h3><button class="btn" id="lcNextM" aria-label="Next month">›</button></div>
-        <div class="legend" style="margin:0"><span><i style="background:var(--c1)"></i>Lift</span><span><i style="background:var(--chart-muted)"></i>Optional</span><span><i style="background:var(--c2)"></i>Game</span><span><b style="color:var(--warn);font-size:11px">G−1</b> day before a game</span></div>
+        <div class="legend" style="margin:0"><span><i style="background:var(--c1)"></i>Lift</span><span><i style="background:var(--c2)"></i>Game</span><span><b style="color:var(--warn);font-size:11px">G−1</b> day before a game</span></div>
       </div>
       <div class="lc-cal" id="lcCal"></div>
     </div>
@@ -2274,7 +2274,7 @@ body.dragging .dropveil{display:grid}
 
   // ================= LIFT CALENDAR =================
   const LC_KEY = "etsu-lifts-v1";
-  let LIFTS = null, lcSel = null, lcMonth = null, SCHED = null;
+  let LIFTS = null, lcSel = null, lcMonth = null, SCHED = null, lcShowOpt = null;
   // games on a day: team schedule plus any game entered in Game Load on a date the schedule doesn't have
   function calGames(iso) {
     const sch = ((SCHED && SCHED.games) || []).filter((g) => g.date === iso).map((g) => ({ ...g }));
@@ -2295,9 +2295,10 @@ body.dragging .dropveil{display:grid}
   const lcOptional = (b) => /activation|potentiation|optional|low.?minute/i.test([b.title, ...(b.notes || [])].join(" "));
   const lcX = (s) => String(s || "").replace(/(\d)\s*x\s*/gi, "$1 × ");
   const lcDayLong = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
-  const lcOn = (iso) => lcBlocks().filter((b) => b.date === iso).sort((a, b) => a.order - b.order);
+  const lcOn = (iso) => lcBlocks().filter((b) => b.date === iso && !lcOptional(b)).sort((a, b) => a.order - b.order);
+  const lcOptOn = (iso) => lcBlocks().filter((b) => b.date === iso && lcOptional(b)).sort((a, b) => a.order - b.order);
   const lcUndatedFor = (iso) => lcBlocks().filter((b) => !b.date && b.week && iso >= addDays(b.week[0], -((new Date(b.week[0] + "T12:00:00Z").getUTCDay() + 6) % 7)) && iso <= addDays(b.week[0], 6 - ((new Date(b.week[0] + "T12:00:00Z").getUTCDay() + 6) % 7)));
-  const lcNext = (iso) => lcBlocks().filter((b) => b.date && b.date > iso).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.order - b.order))[0] || null;
+  const lcNext = (iso) => lcBlocks().filter((b) => b.date && b.date > iso && !lcOptional(b)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.order - b.order))[0] || null;
   const lcTitle = (b) => b.title + (b.notes && b.notes.length ? "" : "");
 
   function lcBlockEl(b, iso) {
@@ -2337,8 +2338,15 @@ body.dragging .dropveil{display:grid}
       if (nx) { const a = el("button", "btn", `Next: ${lcDayLong(nx.date)} · ${nx.title}`); a.style.marginLeft = "10px"; a.onclick = () => { lcSel = nx.date; lcMonth = lcSel.slice(0, 7); renderLifts(); }; p.appendChild(a); }
       day.appendChild(p);
     }
-    const und = lcUndatedFor(lcSel);
-    if (und.length) { const h = el("div", "sub", "Optional this week (no date set)"); h.style.cssText = "font-size:12.5px;color:var(--muted);font-weight:600"; day.appendChild(h); und.forEach((b) => day.appendChild(lcBlockEl(b, lcSel))); }
+    // optional days stay hidden until asked for
+    const opt = [...lcOptOn(lcSel), ...lcUndatedFor(lcSel)];
+    if (opt.length) {
+      const btn = el("button", "btn", (lcShowOpt === lcSel ? "Hide optional day" : "Show optional day") + `: ${opt.map((b) => b.title).join(", ")}${opt.some((b) => !b.date) ? " (this week)" : ""}`);
+      btn.style.alignSelf = "flex-start"; btn.setAttribute("aria-expanded", String(lcShowOpt === lcSel));
+      btn.onclick = () => { lcShowOpt = lcShowOpt === lcSel ? null : lcSel; renderLifts(); };
+      day.appendChild(btn);
+      if (lcShowOpt === lcSel) opt.forEach((b) => day.appendChild(lcBlockEl(b, lcSel)));
+    }
     // month grid
     const [Y, M] = lcMonth.split("-").map(Number), first = `${lcMonth}-01`, dow = (new Date(first + "T12:00:00Z").getUTCDay() + 6) % 7, start = addDays(first, -dow);
     $("lcMonth").textContent = new Date(first + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
