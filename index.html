@@ -295,6 +295,34 @@ body.dragging .dropveil{display:grid}
 .xh-lead .num{text-align:right;font-weight:700}
 [hidden]{display:none!important}
 
+/* game load */
+.p-top{background:color-mix(in srgb,var(--c2) 14%,var(--panel));color:var(--c2)}
+.gl-entry{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:8px 14px;margin-top:14px}
+.gl-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:5px 6px 5px 10px;background:var(--panel)}
+.gl-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+.gl-row input{width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.gl-row.dnp{background:var(--soft)}.gl-row.dnp .nm{color:var(--muted)}
+.gl-dnp{border:1px solid var(--line);background:transparent;border-radius:6px;padding:3px 7px;font-size:11.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.gl-dnp[aria-pressed=true]{background:var(--muted);color:var(--panel);border-color:var(--muted)}
+.gl-total{font-size:13px;color:var(--muted)}
+.gl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:14px}
+.gl-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;border-top:4px solid var(--gc,var(--line))}
+.gl-card .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.gl-card .hd b{font-size:15.5px;cursor:pointer}
+.gl-card .hd b:hover{text-decoration:underline}
+.gl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.gl-stats div{background:var(--soft);border-radius:8px;padding:6px 4px}
+.gl-stats .num{font-size:21px;font-weight:700;line-height:1.1;display:block;font-variant-numeric:tabular-nums}
+.gl-stats .lbl{font-size:11px;color:var(--muted);line-height:1.2;display:block}
+.gl-why{font-size:13.5px;margin:0}
+.gl-plan{display:grid;grid-template-columns:92px 1fr;gap:4px 10px;font-size:13px;margin:0}
+.gl-plan dt{color:var(--muted);font-weight:600}.gl-plan dd{margin:0}
+.gl-notes{display:grid;gap:4px;font-size:12.5px;margin:0;padding:0;list-style:none}
+.gl-notes li{padding-left:14px;position:relative}
+.gl-notes li::before{content:"";position:absolute;left:2px;top:.55em;width:6px;height:6px;border-radius:50%;background:currentColor}
+.gl-filter{display:flex;flex-wrap:wrap;gap:6px}
+.gl-filter button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.gl-filter button[aria-pressed=true]{border-color:var(--accent);color:var(--fg);background:var(--soft)}
 @media print{
   header.top,nav.tabs,.toolbar,.noprint,.toast{display:none!important}
   body{background:#fff}
@@ -321,6 +349,7 @@ body.dragging .dropveil{display:grid}
   <a href="#home" data-v="home">Home</a>
   <a href="#profiles" data-v="profiles">Quadrant</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
+  <a href="#games" data-v="games">Game load</a>
   <a href="#symmetry" data-v="symmetry">Symmetry analysis</a>
   <a href="#program" data-v="program">Program builder</a>
   <a href="#reports" data-v="reports">Reports</a>
@@ -384,6 +413,57 @@ body.dragging .dropveil{display:grid}
       <div class="card"><h3>Score distribution</h3><p class="note">How many players at each score this test.</p><div class="box" id="rdist"></div></div>
     </div>
     <div class="card"><h3>Left–right asymmetry</h3><p class="note">Not part of the score, but worth checking alongside it. Left of center favors the left leg. Shaded bands mark 10% and 15%.</p><div class="box" id="asym"></div><div class="legend" id="asymLegend"></div></div>
+  </section>
+
+  <!-- GAME LOAD -->
+  <section class="view" id="v-games">
+    <div class="pagehead"><div><h2>Game load</h2><p>Enter each player's minutes after every game. The dashboard combines his minutes with his latest jump test to say what he needs next: recover, manage, keep going, or top up the conditioning he isn't getting from games.</p></div>
+      <div class="toolbar"><button class="btn" id="glCsv">⬇ Download CSV</button><label class="btn" for="glImport" tabindex="0">⬆ Import CSV</label><input type="file" id="glImport" accept=".csv,text/csv"></div></div>
+
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between">
+        <div class="toolbar"><b>Game</b>
+          <select id="glSel" aria-label="Game" style="min-width:230px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select>
+          <button class="btn btn-gold" id="glNew">＋ New game</button></div>
+        <button class="btn" id="glDel">Delete game</button>
+      </div>
+      <div id="glForm">
+        <div class="toolbar" style="margin-top:14px">
+          <label class="muted" for="glDate" style="font-size:13px">Date</label><input type="date" id="glDate" class="xh-in" style="width:auto">
+          <label class="muted" for="glOpp" style="font-size:13px">Opponent</label><input id="glOpp" class="xh-in" placeholder="e.g. Wofford" style="width:200px">
+          <select id="glSite" class="xh-in" style="width:auto" aria-label="Home or away"><option value="">Home / away</option><option>Home</option><option>Away</option><option>Neutral</option></select>
+          <label class="muted" for="glOT" style="font-size:13px">OT periods</label><input type="number" id="glOT" class="xh-in" min="0" max="5" step="1" style="width:64px">
+        </div>
+        <div class="gl-entry" id="glEntry"></div>
+        <div class="toolbar" style="justify-content:space-between;margin-top:12px">
+          <div class="toolbar"><button class="btn" id="glBlankDnp">Mark blanks DNP</button><input class="xh-in" id="glNewName" placeholder="Add a player not on the list…" style="width:240px"><button class="btn" id="glNewAdd">Add</button></div>
+          <span class="gl-total" id="glTotal"></span>
+        </div>
+      </div>
+      <div class="empty" id="glNone" style="padding:30px 16px" hidden>No games yet. Click <b>＋ New game</b> to enter minutes.</div>
+      <div class="muted" id="glSaved" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+
+    <div class="toolbar" style="justify-content:space-between;margin-bottom:-4px">
+      <div class="toolbar"><h3 style="margin:0">Readiness with game load</h3><span class="muted" style="font-size:13px">as of</span><input type="date" id="glAsOf" class="xh-in" style="width:auto"><button class="btn" id="glToday">Today</button></div>
+      <div class="gl-filter" id="glFilter"></div>
+    </div>
+    <div class="kpis" id="glKpis"></div>
+    <div class="grid3">
+      <div class="card"><h3>Minutes vs readiness</h3><p class="note">Each dot is a player: minutes in the last 7 days across, latest jump readiness up. Top right is handling heavy minutes, bottom right is wearing down, top left has legs to spare. Click a dot for his profile.</p><div class="box" id="glScatter" style="min-height:340px"></div><div class="legend" id="glLegend"></div></div>
+      <div class="card"><h3>Who needs what</h3><p class="note">Grouped by next step.</p><div class="defs" id="glGroups"></div></div>
+    </div>
+    <div class="gl-cards" id="glCards"></div>
+    <div class="card"><div class="toolbar" style="justify-content:space-between"><h3 style="margin:0">Player minutes and readiness over time</h3>
+      <select id="glPlayer" aria-label="Player" style="min-width:180px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"></select></div>
+      <p class="note" id="glPNote" style="margin-top:8px"></p><div class="box" id="glTrend"></div><div class="legend" id="glTrendLegend"></div></div>
+    <div class="card"><h3>How it decides</h3><div class="defs" style="margin-top:8px">
+      <div><b>Game load</b> is his minutes in the 7 days up to the "as of" date. <b>Heavy</b>: 60+ minutes, or 32+ in one game, or a big jump over his usual week. <b>Moderate</b>: 25–59. <b>Light</b>: under 25. <b>DNP</b>: 0.</div>
+      <div><b>Readiness</b> is his latest jump test score (1–10 vs his own baseline) from the Readiness tab.</div>
+      <div><b>Recover</b> = heavy minutes + fatigued. <b>Manage</b> = heavy + monitor. <b>Handling it</b> = heavy + ready. <b>Check in</b> = fatigued without heavy minutes, so something besides games is wearing on him. <b>Top-up</b> = light minutes or DNP with fresh legs: add conditioning so his fitness keeps up with the guys playing. <b>On track</b> = everything else.</div>
+      <div><b>Minutes spike</b>: last 7 days is 1.5× or more his average week over the 3 weeks before (needs 2 weeks of games). <b>Minutes drop</b>: half or less. <b>Retest</b> is suggested when his last jump came before games he's played since.</div>
+      <div>Leave a box blank if you don't have his minutes; enter 0 or tap <b>DNP</b> if he didn't play. Saves in this browser; <b>Download CSV</b> and upload it to the GitHub <b>data</b> folder as <b>game-minutes.csv</b> so it loads for everyone.</div>
+    </div></div>
   </section>
 
   <!-- SYMMETRY -->
@@ -604,7 +684,7 @@ body.dragging .dropveil{display:grid}
     try {
       const res = await fetch("data/manifest.json", { cache: "no-store" }); if (!res.ok) return;
       const files = await res.json(), all = new Map();
-      for (const f of files) { try { const t = await (await fetch("data/" + encodeURIComponent(f), { cache: "no-store" })).text(); parseExport(t).forEach((r) => all.set(key(r), r)); } catch (e) { console.warn("Skipped", f, e); } }
+      for (const f of files) { if (/^(extra-hours|game-minutes)\.csv$/i.test(f) || /\.json$/i.test(f)) continue; try { const t = await (await fetch("data/" + encodeURIComponent(f), { cache: "no-store" })).text(); parseExport(t).forEach((r) => all.set(key(r), r)); } catch (e) { console.warn("Skipped", f, e); } }
       shared = [...all.values()];
     } catch (e) { /* offline or opened as a file */ }
   }
@@ -736,15 +816,16 @@ body.dragging .dropveil{display:grid}
 
   function render() {
     const has = A.rows.length > 0;
-    $("empty").hidden = has || view === "data" || view === "extra" || view === "program";
+    $("empty").hidden = has || view === "data" || view === "extra" || view === "program" || view === "games";
     const dates = A.team.map((t) => t.date);
     $("subline").textContent = has ? `Force plate CMJ monitoring · ${dates.length} test${dates.length > 1 ? "s" : ""} · ${new Set(A.rows.map((r) => r.name)).size} players` : "Force plate CMJ monitoring · no tests yet";
     if (has && !dates.includes(date)) date = dates[dates.length - 1];
     $("dateSel").replaceChildren(...dates.slice().reverse().map((d) => new Option(dLong(d), d))); if (has) $("dateSel").value = date;
-    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra" || view === "program")));
+    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra" || view === "program" || view === "games")));
     document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.v === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
     renderData();
     if (view === "extra") { xhInit().then(renderExtra); }
+    if (view === "games") { Promise.all([xhInit(), glInit()]).then(() => { glBind(); renderGames(); }); }
     if (view === "program") { xhInit().then(() => window.ProgramBuilder.render($("pbRoot"), pbCtx())); }
     if (!has) return;
     if (view === "home") renderHome();
@@ -1561,6 +1642,7 @@ body.dragging .dropveil{display:grid}
     b.appendChild(stats);
     if (r.flags.length) { const fc = el("div", "card"); fc.appendChild(el("h3", "", "Flags")); const d = el("div", "defs"); d.style.marginTop = "6px"; r.flags.forEach((f) => d.appendChild(el("div", f.level, f.text))); fc.appendChild(d); b.appendChild(fc); }
     if (r.max_asym != null) { const day = A.rows.filter((o) => o.date === r.date), av = {}; Object.keys(SYM).forEach((k) => (av[k] = symAvg(day, k))); const bc = balCard(r, av, true); bc.classList.add("in-drawer"); b.appendChild(bc); }
+    if (games.length) { const gx = glAnalyze(name, glAsOf || isoToday()); if (gx.gl) b.appendChild(glCard(gx, true)); }
     b.appendChild(anatomyCard(r));
     b.appendChild(planCard(r));
     const hist = A.rows.filter((o) => o.name === name).sort((a, c) => (a.date < c.date ? -1 : 1)), dates = A.team.map((t) => t.date);
@@ -1834,6 +1916,314 @@ body.dragging .dropveil{display:grid}
     toast("PDF downloaded — attach it to the email that just opened (it's in your Downloads).");
   }
 
+  // ================= GAME LOAD =================
+  const GL_KEY = "etsu-game-load-v1";
+  let games = [], glLoaded = false, glGameId = null, glAsOf = null, glP = null, glFilt = "all";
+  const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const dayDiff = (a, b) => Math.round((new Date(a + "T12:00:00Z") - new Date(b + "T12:00:00Z")) / 864e5);
+  const gameLbl = (g) => `${dShort(g.date)}${g.opp ? (g.site === "Away" ? " @ " : g.site === "Neutral" ? " vs " : " vs ") + g.opp : ""}`;
+  function glSave() {
+    try { localStorage.setItem(GL_KEY, JSON.stringify(games)); $("glSaved").textContent = "Saved in this browser · " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+    catch (e) { $("glSaved").textContent = "This browser can't save — download the CSV before closing."; }
+  }
+  function glToCSV() {
+    const q = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"', out = [["Date", "Opponent", "Site", "OT", "Player", "Minutes", "Game ID"].map(q).join(",")];
+    games.slice().sort((a, b) => (a.date < b.date ? -1 : 1)).forEach((g) => {
+      const names = Object.keys(g.mins).filter((n) => g.mins[n] != null).sort();
+      if (!names.length) out.push([g.date, g.opp, g.site, g.ot || 0, "", "", g.id].map(q).join(","));
+      names.forEach((n) => out.push([g.date, g.opp, g.site, g.ot || 0, n, g.mins[n], g.id].map(q).join(",")));
+    });
+    return out.join("\n");
+  }
+  function glFromCSV(text) {
+    const rows = parseCSV(text); if (rows.length < 2) return [];
+    const h = rows[0].map(norm), ix = (...k) => h.findIndex((x) => k.includes(x));
+    const di = ix("date", "game date"), oi = ix("opponent", "opp"), si = ix("site", "home away"), ti = ix("ot"), pi = ix("player", "name"), mi = ix("minutes", "min", "mins"), ii = ix("game id", "id");
+    if (di < 0 || pi < 0 || mi < 0) throw new Error("That file needs Date, Player and Minutes columns.");
+    const by = new Map();
+    rows.slice(1).forEach((r) => {
+      const d = toISO(r[di]); if (!d) return;
+      const opp = oi >= 0 ? String(r[oi] || "").trim() : "", id = (ii >= 0 && r[ii]) || d + "|" + opp.toLowerCase();
+      if (!by.has(id)) by.set(id, { id, date: d, opp, site: si >= 0 ? String(r[si] || "").trim() : "", ot: ti >= 0 ? numOrNull(r[ti]) || 0 : 0, mins: {} });
+      const p = String(r[pi] || "").replace(/\s+/g, " ").trim(), m = numOrNull(r[mi]); if (p && m != null) by.get(id).mins[p] = Math.max(0, m);
+    });
+    return [...by.values()];
+  }
+  async function glInit() {
+    if (glLoaded) return; glLoaded = true;
+    try { games = JSON.parse(localStorage.getItem(GL_KEY) || "null"); } catch (e) { games = null; }
+    if (!Array.isArray(games)) { games = []; try { const res = await fetch("data/game-minutes.csv", { cache: "no-store" }); if (res.ok) games = glFromCSV(await res.text()); } catch (e) { /* none */ } }
+  }
+  const glRoster = () => [...new Set([...rosterNames(), ...games.flatMap((g) => Object.keys(g.mins))])].sort((a, b) => a.localeCompare(b));
+  const curGame = () => games.find((g) => g.id === glGameId) || null;
+
+  // ---------- analysis ----------
+  const ACT = {
+    recover: { label: "Recover", pill: "p-fat", color: "--bad", order: 0,
+      why: "Heavy minutes and his jump is down — the games are showing up in his legs.",
+      lift: "Cut 1 set, loads at RPE 7 or below, no jumps or plyos.", cond: "None extra — the games covered it.",
+      rec: "Mobility and a 10–15 min easy bike flush. Push sleep and food.", test: "Retest before the next game." },
+    check: { label: "Check in", pill: "p-fat", color: "--q-quick", order: 1,
+      why: "His jump is down but his minutes don't explain it — something besides games is wearing on him.",
+      lift: "Cut 1 set, RPE 7 or below until he bounces back.", cond: "Hold off on extra conditioning until his jump recovers.",
+      rec: "Ask about sleep, soreness, practice load and illness. Loop in the athletic trainer if it lasts.", test: "Retest in about 48 hours." },
+    manage: { label: "Manage", pill: "p-mon", color: "--warn", order: 2,
+      why: "Heavy minutes and his jump is holding, but he isn't fresh.",
+      lift: "Run it as written, cap the top sets at RPE 8, keep jump volume low.", cond: "None extra.",
+      rec: "Mobility and an easy flush the day after games.", test: "Normal weekly test." },
+    topup: { label: "Top-up", pill: "p-top", color: "--c2", order: 3,
+      why: "Fresh legs but light minutes — he isn't getting the running his teammates get from games.",
+      lift: "Full session. Good week to push the top sets.", cond: "",
+      rec: "Normal routine.", test: "Normal weekly test." },
+    maintain: { label: "Handling it", pill: "p-ready", color: "--ok", order: 4,
+      why: "Playing big minutes and still jumping at or above his normal level.",
+      lift: "Short and heavy — hold strength, keep total sets low.", cond: "None extra — games are his conditioning.",
+      rec: "Normal routine. Keep up sleep and recovery habits.", test: "Normal weekly test." },
+    normal: { label: "On track", pill: "p-none", color: "--chart-muted", order: 5,
+      why: "Moderate minutes and a normal jump.",
+      lift: "Run it as written.", cond: "Short top-up only after a game where he plays under 15 minutes.",
+      rec: "Normal routine.", test: "Normal weekly test." }
+  };
+  const ACT_KEYS = Object.keys(ACT).sort((a, b) => ACT[a].order - ACT[b].order);
+  const LEVEL = { high: "Heavy", mod: "Moderate", low: "Light", none: "DNP", off: "No games", unk: "Not entered" };
+
+  function glAnalyze(name, asOf) {
+    const played = games.filter((g) => g.date <= asOf).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const ago = (d) => dayDiff(asOf, d);
+    const mine = played.filter((g) => g.mins[name] != null).map((g) => ({ date: g.date, min: g.mins[name], g }));
+    const inW = (m, lo, hi) => ago(m.date) >= lo && ago(m.date) <= hi;
+    const sumW = (lo, hi) => d3.sum(mine.filter((m) => inW(m, lo, hi)), (m) => m.min);
+    const teamW = (lo, hi) => played.filter((g) => inW(g, lo, hi)).length;
+    const m7 = sumW(0, 6), g7 = teamW(0, 6), e7 = mine.filter((m) => inW(m, 0, 6)), p7 = e7.filter((m) => m.min > 0).length;
+    const weeks = [1, 2, 3].filter((k) => teamW(7 * k, 7 * k + 6) > 0 && mine.some((m) => inW(m, 7 * k, 7 * k + 6)));
+    const chronic = weeks.length >= 2 ? d3.mean(weeks, (k) => sumW(7 * k, 7 * k + 6)) : null;
+    const ratio = chronic > 0 ? m7 / chronic : null;
+    const last = mine.filter((m) => m.min > 0).pop() || null, lastAny = mine[mine.length - 1] || null;
+    const playedGames = mine.filter((m) => m.min > 0), mpg = mine.length ? d3.mean(mine, (m) => m.min) : null;
+    const wDates = played.filter((g) => inW(g, 0, 6)).map((g) => g.date).sort();
+    const b2b = wDates.some((d, i) => i && dayDiff(d, wDates[i - 1]) === 1);
+    const big1 = e7.some((m) => m.min >= 32);
+    const spike = ratio != null && ratio >= 1.5 && m7 >= 40, drop = ratio != null && ratio <= 0.5 && chronic >= 40;
+    let level;
+    if (!g7) level = "off"; else if (!e7.length) level = "unk";
+    else if (m7 >= 60 || big1 || spike) level = "high"; else if (m7 >= 25) level = "mod"; else if (m7 > 0) level = "low"; else level = "none";
+
+    const tests = A.rows.filter((r) => r.name === name && r.date <= asOf).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const t = tests[tests.length - 1] || null, scored = t && t.score != null, b = scored ? t.band : "none";
+    let act;
+    if (b === "fat") act = level === "high" ? "recover" : "check";
+    else if (level === "high") act = b === "ready" ? "maintain" : "manage";
+    else if (level === "low" || level === "none") act = "topup";
+    else act = "normal";
+    if (!scored && act === "maintain") act = "manage";
+
+    const notes = [];
+    if (!t) notes.push(["warn", "No jump test on file yet — this is based on minutes only. Get him on the plates."]);
+    else if (!scored) notes.push(["warn", `No readiness score on his ${dShort(t.date)} test (${t.bw_flag ? "bodyweight reading was off" : "first test, baseline only"}) — based on minutes only.`]);
+    const since = t ? playedGames.filter((m) => m.date >= t.date) : [];
+    if (t && since.length) notes.push(["warn", `His last jump (${dShort(t.date)}) came before ${since.length} game${since.length > 1 ? "s" : ""} he's played since. Retest 24–48 h after his next game to see how he's handling it.`]);
+    else if (t && dayDiff(asOf, t.date) > 10) notes.push(["muted", `Last jump test was ${dayDiff(asOf, t.date)} days ago.`]);
+    if (spike) notes.push(["bad", `Minutes jumped to ${Math.round(m7)} this week from about ${Math.round(chronic)} a week — the biggest soft-tissue risk window. Keep lifts short and skip extra conditioning.`]);
+    if (drop) notes.push(["warn", `Minutes dropped to ${Math.round(m7)} this week from about ${Math.round(chronic)} a week. Replace the running he lost so his fitness doesn't slide.`]);
+    if (g7 >= 3) notes.push(["warn", `${g7} games in 7 days${b2b ? ", including back-to-back days" : ""} — keep lifting to one short session between games.`]);
+    else if (b2b) notes.push(["warn", "Back-to-back game days this week — no lift between them."]);
+    if (scored && t.rsi_chg != null && t.rsi_chg <= -0.1) notes.push(["bad", `RSI-mod is down ${Math.round(-t.rsi_chg * 100)}% from his baseline — he's slower getting off the floor.`]);
+    if (scored && t.jh_chg != null && t.jh_chg <= -0.08 && !(t.rsi_chg <= -0.1)) notes.push(["warn", `Jump height is down ${Math.round(-t.jh_chg * 100)}% from his baseline.`]);
+    if (t && (level === "high" || level === "mod")) {
+      const lr = [["braking", t.decel, t.decel_abs], ["push-off", t.conc, t.conc_abs]].filter((x) => x[2] > 15).sort((a, c) => c[2] - a[2]);
+      if (lr.length) notes.push(["warn", `${lr[0][0][0].toUpperCase() + lr[0][0].slice(1)} gap of ${asymTxt(lr[0][1]).replace(" ", "% ")} while playing real minutes — add single-leg work on the ${weaker(lr[0][1])} and watch it.`]);
+      else if (t.land_abs > 25) notes.push(["warn", `Landing gap of ${asymTxt(t.land).replace(" ", "% ")} while playing real minutes — add single-leg landings and watch it.`]);
+    }
+    // how he has responded to big minutes before (tests 1–3 days after a game)
+    const resp = tests.filter((r) => r.rsi_chg != null && !r.bw_flag).map((r) => ({ r, pre: d3.sum(mine.filter((m) => { const d = dayDiff(r.date, m.date); return d >= 1 && d <= 3; }), (m) => m.min) }));
+    const hi = resp.filter((x) => x.pre >= 25);
+    if (hi.length >= 2) { const avg = d3.mean(hi, (x) => x.r.rsi_chg); notes.push([avg <= -0.05 ? "warn" : "muted", `After 25+ minute games his RSI-mod has averaged ${pct(avg)} vs baseline (${hi.length} tests) — ${avg <= -0.05 ? "he needs more recovery than most after big games." : "he's been bouncing back well."}`]); }
+
+    const A_ = ACT[act];
+    let cond = A_.cond, lift = A_.lift;
+    if (act === "topup") {
+      cond = level === "none" || m7 < 10
+        ? "Full game replacement after games or the next day: 6–8 × 60 s at game pace with 60 s rest, then 4 × 20 m sprints."
+        : "Half replacement after games: 4 × 60 s at game pace with 60 s rest.";
+      if (b === "mon") lift = "Run it as written, cap the top sets at RPE 8.";
+      if (!scored) lift = "Run it as written.";
+    }
+    if (act === "manage" && !scored) lift = "Run it as written, cap the top sets at RPE 8 until he has a readiness score.";
+    let why = A_.why;
+    if (level === "off" || level === "unk") {
+      const w = level === "off" ? "No games in the last 7 days" : "No minutes entered for his games this week";
+      why = act === "check" ? `${w}, and his jump is down — something besides games is wearing on him.` : `${w} — this is his jump readiness on its own.`;
+      if (act === "normal") cond = "Normal practice conditioning.";
+    }
+    return { why, name, asOf, level, act, m7, g7, p7, chronic, ratio, last, lastAny, mpg, gp: playedGames.length, gl: mine.length, b2b, spike, drop, t, scored, band: b, notes, plan: { lift, cond, rec: A_.rec, test: since.length ? "Retest 24–48 h after his next game." : A_.test } };
+  }
+
+  // ---------- render ----------
+  function glDefaultAsOf() { return isoToday(); }
+  function renderGames() {
+    if (!glAsOf) glAsOf = glDefaultAsOf();
+    games.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    if (!curGame()) glGameId = games[0] ? games[0].id : null;
+    const sel = $("glSel"); sel.replaceChildren(...games.map((g) => new Option(gameLbl(g) + (g.site ? ` (${g.site})` : ""), g.id)));
+    if (!games.length) sel.appendChild(new Option("No games yet", ""));
+    sel.value = glGameId || ""; sel.disabled = !games.length; $("glDel").disabled = !games.length;
+    $("glForm").hidden = !games.length; $("glNone").hidden = !!games.length;
+    renderGameForm();
+    renderGameAnalysis();
+  }
+  function renderGameForm() {
+    const g = curGame(); if (!g) return;
+    $("glDate").value = g.date; $("glOpp").value = g.opp || ""; $("glSite").value = g.site || ""; $("glOT").value = g.ot || 0;
+    const box = $("glEntry"); box.replaceChildren();
+    glRoster().forEach((n) => {
+      const v = g.mins[n], row = el("div", "gl-row" + (v === 0 ? " dnp" : ""));
+      const nm = el("span", "nm", n); nm.title = n;
+      const inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.max = "65"; inp.step = "1"; inp.inputMode = "numeric"; inp.className = "xh-in"; inp.placeholder = "—"; inp.value = v == null ? "" : v; inp.setAttribute("aria-label", `${n} minutes`);
+      const dnp = el("button", "gl-dnp", "DNP"); dnp.type = "button"; dnp.setAttribute("aria-pressed", String(v === 0)); dnp.title = "Did not play";
+      let tm;
+      inp.oninput = () => { const x = numOrNull(inp.value); if (x == null) delete g.mins[n]; else g.mins[n] = Math.max(0, Math.min(65, Math.round(x))); row.classList.toggle("dnp", g.mins[n] === 0); dnp.setAttribute("aria-pressed", String(g.mins[n] === 0)); glTotal(); clearTimeout(tm); tm = setTimeout(() => { glSave(); renderGameAnalysis(); }, 350); };
+      dnp.onclick = () => { if (g.mins[n] === 0) delete g.mins[n]; else g.mins[n] = 0; glSave(); renderGameForm(); renderGameAnalysis(); };
+      inp.onkeydown = (e) => { if (e.key === "Enter") { const all = [...box.querySelectorAll("input")], i = all.indexOf(inp); if (all[i + 1]) all[i + 1].focus(); } };
+      row.append(nm, inp, dnp); box.appendChild(row);
+    });
+    glTotal();
+  }
+  function glTotal() {
+    const g = curGame(); if (!g) return;
+    const vals = Object.values(g.mins), tot = d3.sum(vals), exp = 200 + 25 * (g.ot || 0), played = vals.filter((v) => v > 0).length, blank = glRoster().length - vals.length;
+    const off = Math.abs(tot - exp) > 2 && blank === 0;
+    $("glTotal").innerHTML = `${played} played · <b class="${off ? "warn" : ""}">${tot} of ${exp} team minutes</b>${blank ? ` · ${blank} blank` : ""}${off ? " — check the totals" : ""}`;
+  }
+  function renderGameAnalysis() {
+    $("glAsOf").value = glAsOf;
+    const names = glRoster(), R = names.map((n) => glAnalyze(n, glAsOf)).filter((x) => x.gl || x.t);
+    const lastG = games.filter((g) => g.date <= glAsOf).sort((a, b) => (a.date < b.date ? -1 : 1)).pop();
+    const counts = Object.fromEntries(ACT_KEYS.map((k) => [k, R.filter((x) => x.act === k).length]));
+    // filter chips
+    const fl = $("glFilter"); fl.replaceChildren();
+    [["all", `All ${R.length}`]].concat(ACT_KEYS.filter((k) => counts[k]).map((k) => [k, `${ACT[k].label} ${counts[k]}`])).forEach(([k, t]) => { const b = el("button", "", t); b.setAttribute("aria-pressed", String(glFilt === k)); b.onclick = () => { glFilt = k; renderGameAnalysis(); }; fl.appendChild(b); });
+    if (glFilt !== "all" && !counts[glFilt]) glFilt = "all";
+    // KPIs
+    const k = $("glKpis"); k.replaceChildren();
+    const kpi = (lbl, big, sub) => { const d = el("div", "kpi"); d.append(el("div", "lbl", lbl), el("div", "big", big), el("div", "sub", sub)); k.appendChild(d); };
+    const g7 = games.filter((g) => g.date <= glAsOf && dayDiff(glAsOf, g.date) <= 6).length;
+    kpi("Games logged", String(games.filter((g) => g.date <= glAsOf).length), lastG ? `Last: ${gameLbl(lastG)}` : "none yet");
+    kpi("Games last 7 days", String(g7), g7 >= 3 ? "Heavy week" : g7 ? "" : "No games this week");
+    kpi("Recover · Check in", `${counts.recover} · ${counts.check}`, "need a lighter day");
+    kpi("Manage", String(counts.manage), "heavy minutes, not fresh");
+    kpi("Top-up", String(counts.topup), "need extra conditioning");
+    // groups
+    const gr = $("glGroups"); gr.replaceChildren();
+    ACT_KEYS.forEach((a) => { const who = R.filter((x) => x.act === a); if (!who.length) return; const d = el("div"); const p = el("span", "pill " + ACT[a].pill, ACT[a].label); d.append(p, " ", who.map((x) => x.name).join(", ")); gr.appendChild(d); });
+    if (!R.length) gr.appendChild(el("div", "", "Enter a game's minutes to see who needs what."));
+    glScatter(R);
+    // cards
+    const cards = $("glCards"); cards.replaceChildren();
+    R.filter((x) => glFilt === "all" || x.act === glFilt).sort((a, b) => ACT[a.act].order - ACT[b.act].order || b.m7 - a.m7 || a.name.localeCompare(b.name)).forEach((x) => cards.appendChild(glCard(x)));
+    // trend
+    const ps = $("glPlayer"); if (!glP || !names.includes(glP)) glP = (R[0] || {}).name || names[0];
+    ps.replaceChildren(...names.map((n) => new Option(n, n))); if (glP) ps.value = glP;
+    glTrend(glP);
+  }
+  function glCard(x, inDrawer) {
+    const c = el("div", "gl-card"); c.style.setProperty("--gc", css(ACT[x.act].color));
+    const hd = el("div", "hd"), left = el("div");
+    if (!inDrawer) { const nm = el("b", "", x.name); nm.tabIndex = 0; nm.onclick = () => openPlayer(x.name); nm.onkeydown = (e) => { if (e.key === "Enter") openPlayer(x.name); }; left.appendChild(nm); }
+    else left.appendChild(el("b", "", "Game load"));
+    left.appendChild(el("div", "muted", `${LEVEL[x.level]} load · ${x.t ? (x.scored ? `readiness ${x.t.score}/10 (${BAND[x.band][0]})` : "no readiness score") : "no jump test"}`)).style.fontSize = "12.5px";
+    hd.append(left, el("span", "pill " + ACT[x.act].pill, ACT[x.act].label)); c.appendChild(hd);
+    const st = el("div", "gl-stats");
+    const s = (v, l) => { const d = el("div"); d.append(el("span", "num", v), el("span", "lbl", l)); st.appendChild(d); };
+    s(x.lastAny ? (x.lastAny.min === 0 ? "DNP" : String(x.lastAny.min)) : "—", x.lastAny ? "last game" : "last game");
+    s(x.g7 ? String(Math.round(x.m7)) : "—", "min last 7 days");
+    s(x.mpg != null ? f1(x.mpg).replace(/\.0$/, "") : "—", `MPG · ${x.gp} GP`);
+    s(x.t ? (x.scored ? String(x.t.score) : "—") : "—", x.t ? `jump ${dShort(x.t.date)}` : "no test");
+    c.appendChild(st);
+    c.appendChild(el("p", "gl-why", x.why));
+    const dl = el("dl", "gl-plan");
+    [["Lift", x.plan.lift], ["Conditioning", x.plan.cond], ["Recovery", x.plan.rec], ["Next test", x.plan.test]].forEach(([k, v]) => { dl.append(el("dt", "", k), el("dd", "", v)); });
+    c.appendChild(dl);
+    if (x.notes.length) { const ul = el("ul", "gl-notes"); x.notes.forEach(([lv, t]) => ul.appendChild(el("li", lv, t))); c.appendChild(ul); }
+    return c;
+  }
+  function glScatter(R) {
+    const box = $("glScatter"); box.replaceChildren(); const lg = $("glLegend"); lg.replaceChildren();
+    const pts = R.filter((x) => x.scored && x.g7 && x.level !== "unk");
+    if (!pts.length) { box.appendChild(el("div", "empty", "Needs minutes from a game in the last 7 days and a scored jump test.")); box.firstChild.style.padding = "80px 10px"; return; }
+    const W = Math.max(300, box.clientWidth || 600), H = 340, m = { t: 30, r: 18, b: 40, l: 40 };
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const xmax = Math.max(80, d3.max(pts, (p) => p.m7) + 8), x = d3.scaleLinear([0, xmax], [m.l, W - m.r]), y = d3.scaleLinear([0.5, 10.5], [H - m.b, m.t]);
+    [[0.5, 4.5, "--badbg"], [4.5, 7.5, "--warnbg"], [7.5, 10.5, "--okbg"]].forEach(([a, b, c]) => svg.append("rect").attr("x", m.l).attr("width", W - m.l - m.r).attr("y", y(b)).attr("height", y(a) - y(b)).attr("fill", css(c)).attr("opacity", 0.55));
+    [25, 60].forEach((v) => { svg.append("line").attr("x1", x(v)).attr("x2", x(v)).attr("y1", m.t).attr("y2", H - m.b).attr("stroke", css("--muted")).attr("stroke-dasharray", "4 4").attr("opacity", 0.6); svg.append("text").attr("x", x(v) + 4).attr("y", H - m.b - 6).attr("fill", css("--muted")).style("font-size", "11px").text(v === 25 ? "moderate" : "heavy"); });
+    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
+    svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).tickValues([1, 4, 7, 10]).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
+    svg.append("text").attr("x", (W + m.l) / 2).attr("y", H - 6).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text("Minutes, last 7 days");
+    svg.append("text").attr("transform", `translate(12,${(H - m.b + m.t) / 2}) rotate(-90)`).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "11.5px").text("Readiness");
+    const tip = tipFor(box), jit = (n) => ((n.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) * 0.07;
+    const g = svg.selectAll(null).data(pts).join("g").attr("transform", (p) => `translate(${x(p.m7)},${y(p.t.score + jit(p.name))})`).style("cursor", "pointer")
+      .on("click", (ev, p) => openPlayer(p.name)).on("mousemove", (ev, p) => tip.show(ev, [p.name, `${Math.round(p.m7)} min in 7 days · readiness ${p.t.score}`, ACT[p.act].label])).on("mouseleave", tip.hide);
+    g.append("circle").attr("r", 7).attr("fill", (p) => css(ACT[p.act].color)).attr("stroke", css("--panel")).attr("stroke-width", 2);
+    // keep names from overlapping: stagger labels of nearby dots
+    const placed = [];
+    pts.slice().sort((a, c) => a.m7 - c.m7).forEach((p) => { const px = x(p.m7), py = y(p.t.score + jit(p.name)); let dy = 4; for (const o of [4, -10, 18, -24, 32]) { if (!placed.some((q) => Math.abs(q.x - px) < 62 && Math.abs(q.y - (py + o)) < 12)) { dy = o; break; } } p._dy = dy; placed.push({ x: px, y: py + dy }); });
+    g.append("text").attr("x", 10).attr("y", (p) => p._dy).attr("fill", css("--fg")).style("font-size", "11px").style("font-weight", 600).text((p) => p.name.split(" ").slice(-1)[0]);
+    ACT_KEYS.filter((k) => pts.some((p) => p.act === k)).forEach((k) => { const s = el("span"); const i = el("i"); i.style.background = css(ACT[k].color); s.append(i, ACT[k].label); lg.appendChild(s); });
+  }
+  function glTrend(name) {
+    const box = $("glTrend"); box.replaceChildren(); const lg = $("glTrendLegend"); lg.replaceChildren();
+    if (!name) { $("glPNote").textContent = ""; return; }
+    const gm = games.filter((g) => g.mins[name] != null && g.date <= glAsOf).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const ts = A.rows.filter((r) => r.name === name && r.score != null && r.date <= glAsOf).sort((a, b) => (a.date < b.date ? -1 : 1));
+    if (!gm.length && !ts.length) { $("glPNote").textContent = "No minutes or readiness scores for him yet."; return; }
+    $("glPNote").textContent = `Bars are his minutes each game; the line is his jump readiness on test days. A dip in the line right after tall bars means games are taking a toll.`;
+    const all = [...gm.map((g) => g.date), ...ts.map((r) => r.date)].sort(), lo = addDays(all[0], -3), hi = addDays(all[all.length - 1], 3);
+    const W = Math.max(300, box.clientWidth || 600), H = 240, m = { t: 22, r: 40, b: 26, l: 40 };
+    const svg = d3.select(box).append("svg").attr("width", "100%").attr("viewBox", `0 0 ${W} ${H}`);
+    const P = (d) => new Date(d + "T12:00:00Z"), x = d3.scaleUtc([P(lo), P(hi)], [m.l, W - m.r]);
+    const ym = d3.scaleLinear([0, Math.max(40, d3.max(gm, (g) => g.mins[name]) || 0)], [H - m.b, m.t]).nice(), yr = d3.scaleLinear([1, 10], [H - m.b, m.t]);
+    svg.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(Math.min(8, Math.floor(W / 80))).tickFormat(d3.utcFormat("%b %-d")).tickSize(0).tickPadding(8)).call(axisStyle).call((g) => g.select(".domain").remove());
+    const ya = svg.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(ym).ticks(4).tickSize(-(W - m.l - m.r))).call(axisStyle); ya.select(".domain").remove(); ya.selectAll("line").attr("opacity", 0.7);
+    svg.append("g").attr("transform", `translate(${W - m.r},0)`).call(d3.axisRight(yr).tickValues([1, 4, 7, 10]).tickSize(0).tickPadding(6)).call(axisStyle).call((g) => g.select(".domain").remove());
+    svg.append("text").attr("x", m.l).attr("y", 12).attr("fill", css("--muted")).style("font-size", "11.5px").style("font-weight", 600).text("minutes");
+    svg.append("text").attr("x", W - m.r).attr("y", 12).attr("text-anchor", "end").attr("fill", css("--muted")).style("font-size", "11.5px").style("font-weight", 600).text("readiness");
+    const tip = tipFor(box), bw = Math.max(6, Math.min(18, (W - m.l - m.r) / Math.max(1, dayDiff(hi, lo)) * 0.8));
+    svg.selectAll(null).data(gm).join("rect").attr("x", (g) => x(P(g.date)) - bw / 2).attr("width", bw).attr("y", (g) => ym(g.mins[name])).attr("height", (g) => ym(0) - ym(g.mins[name])).attr("rx", 2).attr("fill", css("--c2")).attr("opacity", 0.75)
+      .on("mousemove", (ev, g) => tip.show(ev, [gameLbl(g), g.mins[name] === 0 ? "DNP" : `${g.mins[name]} min`])).on("mouseleave", tip.hide);
+    svg.selectAll(null).data(gm.filter((g) => g.mins[name] === 0)).join("text").attr("x", (g) => x(P(g.date))).attr("y", ym(0) - 4).attr("text-anchor", "middle").attr("fill", css("--muted")).style("font-size", "10px").text("DNP");
+    if (ts.length) {
+      svg.append("path").datum(ts).attr("fill", "none").attr("stroke", css("--c3")).attr("stroke-width", 2.2).attr("d", d3.line().x((r) => x(P(r.date))).y((r) => yr(r.score)));
+      svg.selectAll(null).data(ts).join("circle").attr("cx", (r) => x(P(r.date))).attr("cy", (r) => yr(r.score)).attr("r", 4.5).attr("fill", css("--c3")).attr("stroke", css("--panel")).attr("stroke-width", 1.5)
+        .on("mousemove", (ev, r) => tip.show(ev, [dLong(r.date), `Readiness ${r.score} · ${BAND[r.band][0]}`])).on("mouseleave", tip.hide);
+    }
+    [["--c2", "Minutes"], ["--c3", "Jump readiness"]].forEach(([c, t]) => { const s = el("span"); const i = el("i"); i.style.background = css(c); s.append(i, t); lg.appendChild(s); });
+  }
+  function glNewGame() {
+    const g = { id: uid(), date: isoToday(), opp: "", site: "", ot: 0, mins: {} };
+    games.push(g); glGameId = g.id; glSave(); renderGames(); $("glOpp").focus();
+  }
+  let glBound = false;
+  function glBind() {
+    if (glBound) return; glBound = true;
+    $("glSel").addEventListener("change", (e) => { glGameId = e.target.value; renderGameForm(); });
+    $("glNew").addEventListener("click", glNewGame);
+    $("glDel").addEventListener("click", () => { const g = curGame(); if (!g) return; if (!confirm(`Delete ${gameLbl(g)} and its minutes?`)) return; games = games.filter((x) => x !== g); glGameId = null; glSave(); renderGames(); });
+    const meta = (id, f) => $(id).addEventListener("change", (e) => { const g = curGame(); if (!g) return; f(g, e.target.value); glSave(); renderGames(); });
+    meta("glDate", (g, v) => { if (v) g.date = v; }); meta("glOpp", (g, v) => { g.opp = v.trim(); }); meta("glSite", (g, v) => { g.site = v; }); meta("glOT", (g, v) => { g.ot = Math.max(0, Math.min(5, parseInt(v, 10) || 0)); });
+    $("glBlankDnp").addEventListener("click", () => { const g = curGame(); if (!g) return; let n = 0; glRoster().forEach((p) => { if (g.mins[p] == null) { g.mins[p] = 0; n++; } }); glSave(); renderGameForm(); renderGameAnalysis(); toast(n ? `Marked ${n} player${n > 1 ? "s" : ""} DNP.` : "No blanks left."); });
+    const addName = () => { const v = $("glNewName").value.replace(/\s+/g, " ").trim(), g = curGame(); if (!v || !g) return; if (!xhRoster.includes(v) && !glRoster().includes(v)) { xhRoster.push(v); xhSave(); } if (g.mins[v] == null) g.mins[v] = 0; $("glNewName").value = ""; glSave(); renderGameForm(); const r = [...$("glEntry").children].find((c) => c.querySelector(".nm").textContent === v); if (r) { r.querySelector("input").select(); r.querySelector("input").focus(); } };
+    $("glNewAdd").addEventListener("click", addName); $("glNewName").addEventListener("keydown", (e) => { if (e.key === "Enter") addName(); });
+    $("glAsOf").addEventListener("change", (e) => { if (e.target.value) { glAsOf = e.target.value; renderGameAnalysis(); } });
+    $("glToday").addEventListener("click", () => { glAsOf = isoToday(); renderGameAnalysis(); });
+    $("glPlayer").addEventListener("change", (e) => { glP = e.target.value; glTrend(glP); });
+    $("glCsv").addEventListener("click", () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([glToCSV()], { type: "text/csv" })); a.download = "game-minutes.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
+    $("glImport").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+      try { const rows = glFromCSV(await f.text()); if (!rows.length) { toast("No games found in that file."); return; }
+        let add = 0, upd = 0; rows.forEach((r) => { const ex = games.find((g) => g.id === r.id || (g.date === r.date && (g.opp || "").toLowerCase() === (r.opp || "").toLowerCase())); if (ex) { Object.assign(ex.mins, r.mins); ex.site = r.site || ex.site; ex.ot = r.ot || ex.ot; upd++; } else { games.push(r); add++; } });
+        glSave(); renderGames(); toast(`Imported ${add} new and updated ${upd} game${add + upd === 1 ? "" : "s"}.`); } catch (err) { toast(err.message); }
+    });
+  }
+
   // ================= events =================
   function refresh() { A = analyze(merged()); render(); }
   async function addFiles(files) {
@@ -1864,7 +2254,7 @@ body.dragging .dropveil{display:grid}
     if (h === "plans") h = "profiles";
     if (h === "report" || h === "coach-report") { setReportKind("coach"); h = "reports"; }
     if (h === "player-report") { setReportKind("player"); h = "reports"; }
-    view = ["home", "profiles", "readiness", "symmetry", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+    view = ["home", "profiles", "readiness", "games", "symmetry", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -1936,7 +2326,7 @@ body.dragging .dropveil{display:grid}
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => A.rows.length && render(), 150); });
   if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => A.rows.length && render());
 
-  (async function init() { loadLocal(); await loadShared(); A = analyze(merged()); route(); })();
+  (async function init() { loadLocal(); await Promise.all([loadShared(), glInit()]); A = analyze(merged()); route(); })();
 })();
 </script>
 </body>
