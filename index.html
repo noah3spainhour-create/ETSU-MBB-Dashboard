@@ -10,6 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="program.css">
 <script src="program.js"></script>
+<script src="lifts.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
 :root{
@@ -323,6 +324,41 @@ body.dragging .dropveil{display:grid}
 .gl-filter{display:flex;flex-wrap:wrap;gap:6px}
 .gl-filter button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer}
 .gl-filter button[aria-pressed=true]{border-color:var(--accent);color:var(--fg);background:var(--soft)}
+/* lift calendar */
+.lc-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.lc-dow{font-size:11.5px;font-weight:600;color:var(--muted);text-align:center;padding:2px 0}
+.lc-day{min-height:92px;border:1px solid var(--line);border-radius:8px;padding:5px;background:var(--panel);cursor:pointer;display:flex;flex-direction:column;gap:3px;text-align:left;min-width:0;font:inherit;color:inherit}
+.lc-day:hover{border-color:var(--accent)}
+.lc-day.out{opacity:.45}
+.lc-day.today .dn{background:var(--navy);color:#fff;border-radius:999px;padding:0 6px}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lc-day.today .dn{background:var(--gold);color:var(--navy)}}
+.lc-day.sel{outline:2px solid var(--gold);outline-offset:1px}
+.lc-day .dn{font-size:12px;font-weight:700;align-self:flex-start}
+.lc-chip{font-size:11px;font-weight:600;padding:1px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--soft);color:var(--fg);border-left:3px solid var(--lc,var(--c1))}
+.lc-chip.game{border-left-color:var(--c2);background:transparent;border:1px dashed var(--line);border-left:3px solid var(--c2)}
+.lc-chip.opt{border-left-color:var(--chart-muted);color:var(--muted)}
+@media(max-width:640px){.lc-day{min-height:58px;padding:3px}.lc-chip{font-size:0;padding:0;height:6px;border-left-width:0;background:var(--lc,var(--c1))}.lc-chip.game{background:var(--c2);border:0}.lc-chip.opt{background:var(--chart-muted)}}
+.lc-block{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--panel);display:flex;flex-direction:column;gap:12px}
+.lc-block h4{margin:0;font-size:17px}
+.lc-block .sub{font-size:12.5px;color:var(--muted)}
+.lc-tags{display:flex;flex-wrap:wrap;gap:6px}
+.lc-secs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.lc-sec{background:var(--soft);border-radius:8px;padding:9px 11px}
+.lc-sec b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.lc-sec div{font-size:13px;display:flex;justify-content:space-between;gap:10px}
+.lc-sec div span:last-child{color:var(--muted);white-space:nowrap}
+.lc-main{width:100%;border-collapse:collapse;font-size:14px}
+.lc-main td{padding:7px 8px;border-top:1px solid var(--line);vertical-align:top;text-align:left;white-space:normal}
+.lc-main tr.g td{border-top:2px solid var(--line)}
+.lc-main td.lb{width:42px;font-weight:700;color:var(--muted);font-family:"Barlow Condensed",sans-serif;font-size:16px}
+.lc-main td.sc{white-space:nowrap;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.lc-main .nt{display:block;font-size:12px;color:var(--muted)}
+.lc-extra{font-size:13px;color:var(--muted);margin:0}
+.lc-who{font-size:13px;display:grid;gap:4px}
+.lc-who div b{font-weight:600}
+.hl-card{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline}
+.hl-card .t{font-weight:700;font-size:15px}
+.hl-card ol{margin:0;padding-left:0;list-style:none;font-size:13.5px;columns:2 240px;column-gap:28px}
 @media print{
   header.top,nav.tabs,.toolbar,.noprint,.toast{display:none!important}
   body{background:#fff}
@@ -350,6 +386,7 @@ body.dragging .dropveil{display:grid}
   <a href="#profiles" data-v="profiles">Quadrant</a>
   <a href="#readiness" data-v="readiness">Readiness</a>
   <a href="#games" data-v="games">Game load</a>
+  <a href="#lifts" data-v="lifts">Lift calendar</a>
   <a href="#symmetry" data-v="symmetry">Symmetry analysis</a>
   <a href="#program" data-v="program">Program builder</a>
   <a href="#reports" data-v="reports">Reports</a>
@@ -363,6 +400,7 @@ body.dragging .dropveil{display:grid}
   <!-- HOME -->
   <section class="view" id="v-home">
     <div class="brief" id="brief"></div>
+    <div class="card" id="homeLift" hidden></div>
     <div class="kpis">
       <div class="kpi"><div class="lbl">Team readiness</div><div class="big" id="k-ready"></div><div class="sub" id="k-ready-s"></div></div>
       <div class="kpi"><div class="lbl">Ready · Monitor · Fatigued</div><div class="big" id="k-bands"></div><div class="sub" id="k-bands-s"></div></div>
@@ -464,6 +502,31 @@ body.dragging .dropveil{display:grid}
       <div><b>Recover</b> = heavy minutes + fatigued. <b>Manage</b> = heavy + monitor. <b>Handling it</b> = heavy + ready. <b>Check in</b> = fatigued without heavy minutes, so something besides games is wearing on him. <b>Top-up</b> = light minutes or DNP with fresh legs: add conditioning so his fitness keeps up with the guys playing. <b>On track</b> = everything else.</div>
       <div><b>Minutes spike</b>: last 7 days is 1.5× or more his average week over the 3 weeks before (needs 2 weeks of games). <b>Minutes drop</b>: half or less. <b>Retest</b> is suggested when his last jump came before games he's played since.</div>
       <div>Leave a box blank if you don't have his minutes; enter 0 or tap <b>DNP</b> if he didn't play. Saves in this browser; <b>Download CSV</b> and upload it to the GitHub <b>data</b> folder as <b>game-minutes.csv</b> so it loads for everyone.</div>
+    </div></div>
+  </section>
+
+  <!-- LIFT CALENDAR -->
+  <section class="view" id="v-lifts">
+    <div class="pagehead"><div><h2>Lift calendar</h2><p>Read straight from the team's lifting workbook. Every "Day" with a date lands on the calendar; optional days without a date show under their week.</p></div>
+      <div class="toolbar"><label class="btn btn-gold" for="lcFile" tabindex="0" id="lcFileBtn">⬆ Update from Excel</label><input type="file" id="lcFile" accept=".xlsx,.xlsm,.xls"><button class="btn" id="lcDl">⬇ Download lifts.json</button></div></div>
+    <div class="muted" id="lcSrc" style="font-size:12.5px;margin-top:-8px"></div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between">
+        <div class="toolbar"><button class="btn" id="lcPrevD" aria-label="Previous day">‹</button><h3 id="lcDayTitle" style="margin:0 6px"></h3><button class="btn" id="lcNextD" aria-label="Next day">›</button></div>
+        <div class="toolbar"><button class="btn" id="lcNextLift">Next lift →</button><button class="btn" id="lcToday">Today</button></div>
+      </div>
+      <div id="lcDay" style="display:flex;flex-direction:column;gap:14px;margin-top:14px"></div>
+    </div>
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between;margin-bottom:10px">
+        <div class="toolbar"><button class="btn" id="lcPrevM" aria-label="Previous month">‹</button><h3 id="lcMonth" style="margin:0 6px;min-width:150px;text-align:center"></h3><button class="btn" id="lcNextM" aria-label="Next month">›</button></div>
+        <div class="legend" style="margin:0"><span><i style="background:var(--c1)"></i>Lift</span><span><i style="background:var(--chart-muted)"></i>Optional</span><span><i style="background:var(--c2)"></i>Game</span></div>
+      </div>
+      <div class="lc-cal" id="lcCal"></div>
+    </div>
+    <div class="card"><h3>Keeping it up to date</h3><div class="defs" style="margin-top:8px">
+      <div>Keep programming in the Excel workbook. When you add or change a week, click <b>Update from Excel</b> and pick the file — the calendar updates right away in this browser. Only the lifting tabs are read; max, weight, body composition and testing tabs are skipped.</div>
+      <div>To update it for every coach, click <b>Download lifts.json</b> and upload it to the GitHub <b>data</b> folder (replace the old one). Upload the <b>lifts.json</b>, not the Excel file — the repository is public and the workbook has player data in it.</div>
     </div></div>
   </section>
 
@@ -817,15 +880,16 @@ body.dragging .dropveil{display:grid}
 
   function render() {
     const has = A.rows.length > 0;
-    $("empty").hidden = has || view === "data" || view === "extra" || view === "program" || view === "games";
+    $("empty").hidden = has || view === "data" || view === "extra" || view === "program" || view === "games" || view === "lifts";
     const dates = A.team.map((t) => t.date);
     $("subline").textContent = has ? `Force plate CMJ monitoring · ${dates.length} test${dates.length > 1 ? "s" : ""} · ${new Set(A.rows.map((r) => r.name)).size} players` : "Force plate CMJ monitoring · no tests yet";
     if (has && !dates.includes(date)) date = dates[dates.length - 1];
     $("dateSel").replaceChildren(...dates.slice().reverse().map((d) => new Option(dLong(d), d))); if (has) $("dateSel").value = date;
-    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra" || view === "program" || view === "games")));
+    document.querySelectorAll(".view").forEach((s) => s.classList.toggle("on", s.id === "v-" + view && (has || view === "data" || view === "extra" || view === "program" || view === "games" || view === "lifts")));
     document.querySelectorAll("nav.tabs a").forEach((a) => (a.dataset.v === view ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
     renderData();
     if (view === "extra") { xhInit().then(renderExtra); }
+    if (view === "lifts") { Promise.all([xhInit(), glInit()]).then(() => { lcBind(); renderLifts(); }); }
     if (view === "games") { Promise.all([xhInit(), glInit()]).then(() => { glBind(); renderGames(); }); }
     if (view === "program") { xhInit().then(() => window.ProgramBuilder.render($("pbRoot"), pbCtx())); }
     if (!has) return;
@@ -838,6 +902,7 @@ body.dragging .dropveil{display:grid}
 
   // ---------- HOME ----------
   function renderHome() {
+    homeLiftCard();
     const t = curTeam(), cur = curRows();
     const scored = cur.filter((r) => r.score != null);
     const counts = { ready: 0, mon: 0, fat: 0 }; scored.forEach((r) => counts[r.band]++);
@@ -2206,6 +2271,136 @@ body.dragging .dropveil{display:grid}
     });
   }
 
+  // ================= LIFT CALENDAR =================
+  const LC_KEY = "etsu-lifts-v1";
+  let LIFTS = null, lcSel = null, lcMonth = null;
+  async function lcInit() {
+    let shared = null, mine = null;
+    try { const res = await fetch("data/lifts.json", { cache: "no-store" }); if (res.ok) shared = await res.json(); } catch (e) { /* none */ }
+    try { mine = JSON.parse(localStorage.getItem(LC_KEY) || "null"); } catch (e) { mine = null; }
+    LIFTS = mine && (!shared || mine.updated > shared.updated) ? { ...mine, local: true } : shared;
+  }
+  const lcBlocks = () => (LIFTS && LIFTS.blocks) || [];
+  const lcOptional = (b) => /activation|potentiation|optional|low.?minute/i.test([b.title, ...(b.notes || [])].join(" "));
+  const lcLowMin = (b) => /low.?minute/i.test([b.title, ...(b.notes || [])].join(" "));
+  const lcX = (s) => String(s || "").replace(/(\d)\s*x\s*/gi, "$1 × ");
+  const lcDayLong = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+  const lcOn = (iso) => lcBlocks().filter((b) => b.date === iso).sort((a, b) => a.order - b.order);
+  const lcUndatedFor = (iso) => lcBlocks().filter((b) => !b.date && b.week && iso >= addDays(b.week[0], -((new Date(b.week[0] + "T12:00:00Z").getUTCDay() + 6) % 7)) && iso <= addDays(b.week[0], 6 - ((new Date(b.week[0] + "T12:00:00Z").getUTCDay() + 6) % 7)));
+  const lcNext = (iso) => lcBlocks().filter((b) => b.date && b.date > iso).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.order - b.order))[0] || null;
+  const lcTitle = (b) => b.title + (b.notes && b.notes.length ? "" : "");
+
+  function lcBlockEl(b, iso) {
+    const box = el("div", "lc-block");
+    const hd = el("div", "toolbar"); hd.style.justifyContent = "space-between";
+    const l = el("div"); l.appendChild(el("h4", "", b.title)); l.appendChild(el("div", "sub", `${b.sheet}${b.date ? "" : " · no date set"}`)); hd.appendChild(l);
+    const tags = el("div", "lc-tags");
+    (b.notes || []).forEach((n) => tags.appendChild(el("span", "pill p-none", n.replace(/^\*/, ""))));
+    if (b.forcePlate) tags.appendChild(el("span", "pill p-mon", "Force plate test"));
+    hd.appendChild(tags); box.appendChild(hd);
+    if (b.sections.length) { const g = el("div", "lc-secs"); b.sections.forEach((s) => { const d = el("div", "lc-sec"); d.appendChild(el("b", "", s.label)); s.items.forEach((i) => { const r = el("div"); r.append(el("span", "", i.name + (i.note ? ` (${i.note})` : "")), el("span", "", lcX(i.scheme))); d.appendChild(r); }); g.appendChild(d); }); box.appendChild(g); }
+    if (b.groups.length) {
+      const t = el("table", "lc-main"), tb = el("tbody"); t.appendChild(tb);
+      b.groups.forEach((g) => g.ex.forEach((e, i) => { const tr = el("tr", i === 0 ? "g" : ""); tr.appendChild(el("td", "lb", e.label)); const n = el("td"); n.appendChild(document.createTextNode(e.name)); if (e.note) n.appendChild(el("span", "nt", e.note)); tr.appendChild(n); tr.appendChild(el("td", "sc", lcX(e.scheme))); tb.appendChild(tr); }));
+      const wrap = el("div", "tablebox"); wrap.appendChild(t); box.appendChild(wrap);
+    }
+    (b.extra || []).forEach((x) => box.appendChild(el("p", "lc-extra", x)));
+    // who: lift changes from Game Load, and who should do a low-minute day
+    if (games.length && iso) {
+      const asOf = iso < isoToday() ? iso : isoToday(), R = glRoster().map((n) => glAnalyze(n, asOf)).filter((x) => x.gl || x.t);
+      const who = el("div", "lc-who");
+      if (lcLowMin(b)) { const tu = R.filter((x) => x.act === "topup"); if (tu.length) { const d = el("div"); d.append(el("b", "", "Low-minute guys (Top-up): "), tu.map((x) => x.name).join(", ")); who.appendChild(d); } }
+      else R.filter((x) => ["recover", "check", "manage"].includes(x.act) || / \+ /.test(x.lift)).forEach((x) => { const d = el("div"); const p = el("span", "pill " + ACT[x.act].pill, ACT[x.act].label); d.append(p, " ", el("b", "", x.name), " — " + x.lift); who.appendChild(d); });
+      if (who.children.length) { const c = el("div"); c.appendChild(el("div", "sub", "Changes from Game Load")).style.marginBottom = "6px"; c.appendChild(who); box.appendChild(c); }
+    }
+    return box;
+  }
+
+  function renderLifts() {
+    const has = lcBlocks().length;
+    if (!lcSel) lcSel = isoToday();
+    if (!lcMonth) lcMonth = lcSel.slice(0, 7);
+    $("lcSrc").textContent = has ? `From ${LIFTS.source || "the lifting workbook"} · read ${new Date(LIFTS.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · ${LIFTS.local ? "this browser only — download lifts.json and upload it to share" : "shared with everyone"}` : "No program loaded yet. Click Update from Excel and pick the lifting workbook.";
+    $("lcDl").disabled = !has;
+    // selected day
+    $("lcDayTitle").textContent = lcDayLong(lcSel) + (lcSel === isoToday() ? " · Today" : "");
+    const day = $("lcDay"); day.replaceChildren();
+    const gms = games.filter((g) => g.date === lcSel); gms.forEach((g) => { const d = el("div", "lc-tags"); d.appendChild(el("span", "pill p-top", "Game " + gameLbl(g).replace(/^[A-Z][a-z]{2} \d+\s*/, ""))); day.appendChild(d); });
+    const on = lcOn(lcSel);
+    on.forEach((b) => day.appendChild(lcBlockEl(b, lcSel)));
+    if (!on.length) {
+      const nx = lcNext(lcSel), p = el("p", "muted", has ? "No lift on this day." : ""); p.style.margin = "0";
+      if (nx) { const a = el("button", "btn", `Next: ${lcDayLong(nx.date)} · ${nx.title}`); a.style.marginLeft = "10px"; a.onclick = () => { lcSel = nx.date; lcMonth = lcSel.slice(0, 7); renderLifts(); }; p.appendChild(a); }
+      day.appendChild(p);
+    }
+    const und = lcUndatedFor(lcSel);
+    if (und.length) { const h = el("div", "sub", "Optional this week (no date set)"); h.style.cssText = "font-size:12.5px;color:var(--muted);font-weight:600"; day.appendChild(h); und.forEach((b) => day.appendChild(lcBlockEl(b, lcSel))); }
+    // month grid
+    const [Y, M] = lcMonth.split("-").map(Number), first = `${lcMonth}-01`, dow = (new Date(first + "T12:00:00Z").getUTCDay() + 6) % 7, start = addDays(first, -dow);
+    $("lcMonth").textContent = new Date(first + "T12:00:00").toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const cal = $("lcCal"); cal.replaceChildren(...["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => el("div", "lc-dow", d)));
+    const last = new Date(Date.UTC(Y, M, 0)).toISOString().slice(0, 10), weeks = Math.ceil((dow + Number(last.slice(8))) / 7);
+    for (let i = 0; i < weeks * 7; i++) {
+      const iso = addDays(start, i), b = el("button", "lc-day" + (iso.slice(0, 7) !== lcMonth ? " out" : "") + (iso === isoToday() ? " today" : "") + (iso === lcSel ? " sel" : ""));
+      b.type = "button"; b.appendChild(el("span", "dn", String(Number(iso.slice(8)))));
+      const bl = lcOn(iso), gm = games.filter((g) => g.date === iso);
+      b.setAttribute("aria-label", `${lcDayLong(iso)}${bl.length ? ": " + bl.map((x) => x.title).join(", ") : ""}${gm.length ? ", game" : ""}`);
+      bl.forEach((x) => { const c = el("span", "lc-chip" + (lcOptional(x) ? " opt" : ""), x.title + (x.forcePlate ? " · FP" : "")); c.title = `${x.sheet} · ${x.title}`; b.appendChild(c); });
+      gm.forEach((g) => b.appendChild(el("span", "lc-chip game", (g.site === "Away" ? "@ " : "vs ") + (g.opp || "Game"))));
+      b.onclick = () => { lcSel = iso; if (iso.slice(0, 7) !== lcMonth) lcMonth = iso.slice(0, 7); renderLifts(); $("lcDayTitle").scrollIntoView({ behavior: "smooth", block: "start" }); };
+      cal.appendChild(b);
+    }
+  }
+  function lcShiftMonth(d) { const [y, m] = lcMonth.split("-").map(Number), t = new Date(Date.UTC(y, m - 1 + d, 1)); lcMonth = t.toISOString().slice(0, 7); renderLifts(); }
+  function loadXLSXLib() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise((ok, bad) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = () => ok(window.XLSX); s.onerror = () => bad(new Error("Couldn't load the Excel reader — check the internet connection.")); document.head.appendChild(s); });
+  }
+  async function lcFromFile(f) {
+    try {
+      const X = await loadXLSXLib(), wb = X.read(await f.arrayBuffer(), { type: "array", cellNF: true, cellDates: false });
+      const out = window.LiftParse.parseWorkbook(X, wb, f.name);
+      if (!out.blocks.length) { toast("No dated lift days found in that file."); return; }
+      try { localStorage.setItem(LC_KEY, JSON.stringify(out)); } catch (e) { /* too big or blocked */ }
+      LIFTS = { ...out, local: true };
+      const dated = out.blocks.filter((b) => b.date);
+      toast(`Read ${dated.length} lift days from ${out.sheets.length} weeks. Download lifts.json and upload it to share with staff.`);
+      render();
+    } catch (e) { toast(e.message || "Couldn't read that file."); }
+  }
+  function homeLiftCard() {
+    const box = $("homeLift"); if (!box) return; box.replaceChildren();
+    if (!lcBlocks().length) { box.hidden = true; return; }
+    box.hidden = false;
+    const today = isoToday(), on = lcOn(today), nx = on.length ? null : lcNext(today);
+    const hd = el("div", "toolbar"); hd.style.justifyContent = "space-between";
+    hd.appendChild(el("h3", "", on.length ? "Today's lift" : "No lift today"));
+    const a = el("a", "muted", "Open lift calendar →"); a.href = "#lifts"; a.style.fontSize = "13px"; a.onclick = () => { lcSel = on.length ? today : nx ? nx.date : today; lcMonth = lcSel.slice(0, 7); }; hd.appendChild(a);
+    box.appendChild(hd);
+    const list = on.length ? on : nx ? [nx] : [];
+    if (!list.length) { box.appendChild(el("p", "note", "Nothing scheduled ahead in the workbook.")); return; }
+    list.forEach((b) => {
+      const d = el("div", "hl-card"); d.style.marginTop = "10px";
+      d.appendChild(el("span", "t", (on.length ? "" : `Next: ${lcDayLong(b.date)} · `) + b.title));
+      if (b.forcePlate) d.appendChild(el("span", "pill p-mon", "Force plate test"));
+      (b.notes || []).forEach((n) => d.appendChild(el("span", "pill p-none", n.replace(/^\*/, ""))));
+      const ol = el("ol"); b.groups.forEach((g) => g.ex.forEach((e) => { const li = el("li"); li.append(el("b", "", e.label + " "), e.name + " — " + lcX(e.scheme)); ol.appendChild(li); }));
+      d.appendChild(ol); box.appendChild(d);
+    });
+  }
+  let lcBound = false;
+  function lcBind() {
+    if (lcBound) return; lcBound = true;
+    $("lcFile").addEventListener("change", (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) lcFromFile(f); });
+    $("lcFileBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("lcFile").click(); } });
+    $("lcDl").addEventListener("click", () => { if (!LIFTS) return; const { local, ...out } = LIFTS; const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: "application/json" })); a.download = "lifts.json"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); });
+    $("lcPrevD").addEventListener("click", () => { lcSel = addDays(lcSel, -1); lcMonth = lcSel.slice(0, 7); renderLifts(); });
+    $("lcNextD").addEventListener("click", () => { lcSel = addDays(lcSel, 1); lcMonth = lcSel.slice(0, 7); renderLifts(); });
+    $("lcToday").addEventListener("click", () => { lcSel = isoToday(); lcMonth = lcSel.slice(0, 7); renderLifts(); });
+    $("lcNextLift").addEventListener("click", () => { const n = lcNext(lcSel); if (!n) { toast("No later lift days in the workbook."); return; } lcSel = n.date; lcMonth = lcSel.slice(0, 7); renderLifts(); });
+    $("lcPrevM").addEventListener("click", () => lcShiftMonth(-1)); $("lcNextM").addEventListener("click", () => lcShiftMonth(1));
+  }
+
   // ================= events =================
   function refresh() { A = analyze(merged()); render(); }
   async function addFiles(files) {
@@ -2236,7 +2431,7 @@ body.dragging .dropveil{display:grid}
     if (h === "plans") h = "profiles";
     if (h === "report" || h === "coach-report") { setReportKind("coach"); h = "reports"; }
     if (h === "player-report") { setReportKind("player"); h = "reports"; }
-    view = ["home", "profiles", "readiness", "games", "symmetry", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
+    view = ["home", "profiles", "readiness", "games", "lifts", "symmetry", "program", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
   $("addBtn").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
@@ -2244,7 +2439,7 @@ body.dragging .dropveil{display:grid}
   document.addEventListener("dragenter", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { e.preventDefault(); dragDepth++; document.body.classList.add("dragging"); } });
   document.addEventListener("dragover", (e) => e.preventDefault());
   document.addEventListener("dragleave", () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove("dragging"); });
-  document.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging"); const f = [...(e.dataTransfer?.files || [])].filter((x) => /\.csv$/i.test(x.name) || x.type === "text/csv"); if (f.length) addFiles(f); else toast("Drop a .csv file from ForceDecks."); });
+  document.addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; document.body.classList.remove("dragging"); const all = [...(e.dataTransfer?.files || [])], xl = all.find((x) => /\.xls[xm]?$/i.test(x.name)); if (xl) { lcFromFile(xl); return; } const f = all.filter((x) => /\.csv$/i.test(x.name) || x.type === "text/csv"); if (f.length) addFiles(f); else toast("Drop a .csv file from ForceDecks or the lifting Excel file."); });
   $("dateSel").addEventListener("change", (e) => { date = e.target.value; render(); });
   document.querySelectorAll("#roster th button, #dtable th button").forEach((b) => b.addEventListener("click", () => {
     const id = b.closest("table").id, k = b.dataset.k, s = sorts[id];
@@ -2308,7 +2503,7 @@ body.dragging .dropveil{display:grid}
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => A.rows.length && render(), 150); });
   if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => A.rows.length && render());
 
-  (async function init() { loadLocal(); await Promise.all([loadShared(), glInit()]); A = analyze(merged()); route(); })();
+  (async function init() { loadLocal(); await Promise.all([loadShared(), glInit(), lcInit()]); A = analyze(merged()); route(); })();
 })();
 </script>
 </body>
