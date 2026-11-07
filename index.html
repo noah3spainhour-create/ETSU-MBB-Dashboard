@@ -2282,7 +2282,6 @@ body.dragging .dropveil{display:grid}
   }
   const lcBlocks = () => (LIFTS && LIFTS.blocks) || [];
   const lcOptional = (b) => /activation|potentiation|optional|low.?minute/i.test([b.title, ...(b.notes || [])].join(" "));
-  const lcLowMin = (b) => /low.?minute/i.test([b.title, ...(b.notes || [])].join(" "));
   const lcX = (s) => String(s || "").replace(/(\d)\s*x\s*/gi, "$1 × ");
   const lcDayLong = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
   const lcOn = (iso) => lcBlocks().filter((b) => b.date === iso).sort((a, b) => a.order - b.order);
@@ -2305,14 +2304,6 @@ body.dragging .dropveil{display:grid}
       const wrap = el("div", "tablebox"); wrap.appendChild(t); box.appendChild(wrap);
     }
     (b.extra || []).forEach((x) => box.appendChild(el("p", "lc-extra", x)));
-    // who: lift changes from Game Load, and who should do a low-minute day
-    if (games.length && iso) {
-      const asOf = iso < isoToday() ? iso : isoToday(), R = glRoster().map((n) => glAnalyze(n, asOf)).filter((x) => x.gl || x.t);
-      const who = el("div", "lc-who");
-      if (lcLowMin(b)) { const tu = R.filter((x) => x.act === "topup"); if (tu.length) { const d = el("div"); d.append(el("b", "", "Low-minute guys (Top-up): "), tu.map((x) => x.name).join(", ")); who.appendChild(d); } }
-      else R.filter((x) => ["recover", "check", "manage"].includes(x.act) || / \+ /.test(x.lift)).forEach((x) => { const d = el("div"); const p = el("span", "pill " + ACT[x.act].pill, ACT[x.act].label); d.append(p, " ", el("b", "", x.name), " — " + x.lift); who.appendChild(d); });
-      if (who.children.length) { const c = el("div"); c.appendChild(el("div", "sub", "Changes from Game Load")).style.marginBottom = "6px"; c.appendChild(who); box.appendChild(c); }
-    }
     return box;
   }
 

@@ -46,7 +46,7 @@
       d("Friday · Upper B", "Volume + durability", 4, [
         mk("Push-up", "Upper", 3, 12, "", ""), mk("Single-arm DB row", "Upper", 3, "10 each", "", ""), mk("Face pull", "Upper", 3, 15, "", ""), mk("Copenhagen plank", "Core", 3, "20", "", "sec"), mk("Hip mobility flow", "Mobility", 1, "10 min", "", "")])
     ];
-    return { v: 2, name: "Fall in-season block", wk: 0, start: mondayOf(new Date()), weeks: [{ id: uid(), label: "Week 1", days }], adjust: true, weakLeg: true, overrides: {}, extras: {} };
+    return { v: 2, name: "Fall in-season block", wk: 0, start: mondayOf(new Date()), weeks: [{ id: uid(), label: "Week 1", days }], adjust: false, weakLeg: false, autoOff: true, overrides: {}, extras: {} };
   }
 
   // ---------- storage ----------
@@ -60,7 +60,7 @@
     // One program for everyone: jumper-type variations are gone; player changes live in overrides.
     o.weeks.forEach((w) => w.days.forEach((d, i) => { if (d.dow == null || d.dow === "") d.dow = guessDow(d.title, i); d.dow = Math.min(6, Math.max(0, +d.dow || 0)); (d.items || []).forEach((it) => delete it.swap); }));
     if (!parseYmd(o.start)) o.start = mondayOf(new Date());
-    o.overrides = o.overrides || {}; o.extras = o.extras || {}; o.wk = Math.min(Math.max(0, o.wk | 0), o.weeks.length - 1); if (o.adjust == null) o.adjust = true; if (o.weakLeg == null) o.weakLeg = true; return o; }
+    o.overrides = o.overrides || {}; o.extras = o.extras || {}; o.wk = Math.min(Math.max(0, o.wk | 0), o.weeks.length - 1); if (!o.autoOff) { o.adjust = false; o.weakLeg = false; o.autoOff = true; } if (o.adjust == null) o.adjust = false; if (o.weakLeg == null) o.weakLeg = false; return o; }
   async function load() {
     try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (valid(s)) { P = normalize(s); savedAt = "Saved in this browser"; return; } } catch (e) { /* ignore */ }
     try { const r = await fetch("data/program.json", { cache: "no-store" }); if (r.ok) { const s = await r.json(); if (valid(s)) { P = normalize(s); savedAt = "Loaded the shared program (data/program.json)"; return; } } } catch (e) { /* none */ }
