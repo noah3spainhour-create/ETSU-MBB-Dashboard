@@ -334,6 +334,12 @@ body.dragging .dropveil{display:grid}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .lc-day.today .dn{background:var(--gold);color:var(--navy)}}
 .lc-day.sel{outline:2px solid var(--gold);outline-offset:1px}
 .lc-day .dn{font-size:12px;font-weight:700;align-self:flex-start}
+.lc-top{display:flex;justify-content:space-between;align-items:center;gap:4px}
+.lc-g{font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--warn)}
+.lc-g.gday{color:var(--c2)}
+.lc-day.gd{background:color-mix(in srgb,var(--c2) 9%,var(--panel));border-color:color-mix(in srgb,var(--c2) 45%,var(--line))}
+.lc-gday{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;border-left:4px solid var(--c2);background:color-mix(in srgb,var(--c2) 9%,var(--panel));border-radius:8px;padding:10px 14px}
+.lc-gday b{font-size:15px}.lc-gday span{font-size:13px;color:var(--muted)}
 .lc-chip{font-size:11px;font-weight:600;padding:1px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--soft);color:var(--fg);border-left:3px solid var(--lc,var(--c1))}
 .lc-chip.game{border-left-color:var(--c2);background:transparent;border:1px dashed var(--line);border-left:3px solid var(--c2)}
 .lc-chip.opt{border-left-color:var(--chart-muted);color:var(--muted)}
@@ -520,7 +526,7 @@ body.dragging .dropveil{display:grid}
     <div class="card">
       <div class="toolbar" style="justify-content:space-between;margin-bottom:10px">
         <div class="toolbar"><button class="btn" id="lcPrevM" aria-label="Previous month">‹</button><h3 id="lcMonth" style="margin:0 6px;min-width:150px;text-align:center"></h3><button class="btn" id="lcNextM" aria-label="Next month">›</button></div>
-        <div class="legend" style="margin:0"><span><i style="background:var(--c1)"></i>Lift</span><span><i style="background:var(--chart-muted)"></i>Optional</span><span><i style="background:var(--c2)"></i>Game</span></div>
+        <div class="legend" style="margin:0"><span><i style="background:var(--c1)"></i>Lift</span><span><i style="background:var(--chart-muted)"></i>Optional</span><span><i style="background:var(--c2)"></i>Game</span><span><b style="color:var(--warn);font-size:11px">G−1</b> day before a game</span></div>
       </div>
       <div class="lc-cal" id="lcCal"></div>
     </div>
@@ -2245,7 +2251,8 @@ body.dragging .dropveil{display:grid}
     [["--c2", "Minutes"], ["--c3", "Jump readiness"]].forEach(([c, t]) => { const s = el("span"); const i = el("i"); i.style.background = css(c); s.append(i, t); lg.appendChild(s); });
   }
   function glNewGame() {
-    const g = { id: uid(), date: isoToday(), opp: "", site: "", ot: 0, mins: {} };
+    const have = new Set(games.map((x) => x.date)), sg = ((SCHED && SCHED.games) || []).filter((x) => x.date <= isoToday() && !have.has(x.date) && !/exhibition/i.test(x.note || "")).pop();
+    const g = sg ? { id: uid(), date: sg.date, opp: sg.opp, site: sg.site, ot: 0, mins: {} } : { id: uid(), date: isoToday(), opp: "", site: "", ot: 0, mins: {} };
     games.push(g); glGameId = g.id; glSave(); renderGames(); $("glOpp").focus();
   }
   let glBound = false;
@@ -2273,12 +2280,22 @@ body.dragging .dropveil{display:grid}
 
   // ================= LIFT CALENDAR =================
   const LC_KEY = "etsu-lifts-v1";
-  let LIFTS = null, lcSel = null, lcMonth = null;
+  let LIFTS = null, lcSel = null, lcMonth = null, SCHED = null;
+  // games on a day: team schedule plus any game entered in Game Load on a date the schedule doesn't have
+  function calGames(iso) {
+    const sch = ((SCHED && SCHED.games) || []).filter((g) => g.date === iso).map((g) => ({ ...g }));
+    games.filter((g) => g.date === iso && !sch.length).forEach((g) => sch.push({ date: g.date, opp: g.opp || "Game", site: g.site, time: "", note: "" }));
+    ((SCHED && SCHED.events) || []).filter((e) => iso >= e.start && iso <= e.end).forEach((e) => sch.push({ date: iso, opp: e.title, site: e.site, time: "", note: e.note, event: true }));
+    return sch;
+  }
+  const gTag = (g) => (g.event ? g.opp : (g.site === "Away" ? "@ " : g.site === "Neutral" ? "vs " : "vs ") + g.opp);
+  const gShortTime = (t) => String(t || "").replace(":00", "").replace(/\s*(AM|PM)/i, (m, x) => x[0].toLowerCase());
   async function lcInit() {
     let shared = null, mine = null;
     try { const res = await fetch("data/lifts.json", { cache: "no-store" }); if (res.ok) shared = await res.json(); } catch (e) { /* none */ }
     try { mine = JSON.parse(localStorage.getItem(LC_KEY) || "null"); } catch (e) { mine = null; }
     LIFTS = mine && (!shared || mine.updated > shared.updated) ? { ...mine, local: true } : shared;
+    try { const res = await fetch("data/schedule.json", { cache: "no-store" }); if (res.ok) SCHED = await res.json(); } catch (e) { /* none */ }
   }
   const lcBlocks = () => (LIFTS && LIFTS.blocks) || [];
   const lcOptional = (b) => /activation|potentiation|optional|low.?minute/i.test([b.title, ...(b.notes || [])].join(" "));
@@ -2316,7 +2333,9 @@ body.dragging .dropveil{display:grid}
     // selected day
     $("lcDayTitle").textContent = lcDayLong(lcSel) + (lcSel === isoToday() ? " · Today" : "");
     const day = $("lcDay"); day.replaceChildren();
-    const gms = games.filter((g) => g.date === lcSel); gms.forEach((g) => { const d = el("div", "lc-tags"); d.appendChild(el("span", "pill p-top", "Game " + gameLbl(g).replace(/^[A-Z][a-z]{2} \d+\s*/, ""))); day.appendChild(d); });
+    const gms = calGames(lcSel), near = (n) => calGames(addDays(lcSel, n)).filter((g) => !g.event);
+    gms.forEach((g) => { const d = el("div", "lc-gday"); d.append(el("b", "", "Game day · " + gTag(g)), el("span", "", [g.time, g.event ? "" : g.site, g.note].filter(Boolean).join(" · "))); day.appendChild(d); });
+    if (!gms.length) { const nb = near(1), pv = near(-1); if (nb.length || pv.length) { const d = el("div", "lc-tags"); if (pv.length) d.appendChild(el("span", "pill p-none", "Day after " + gTag(pv[0]))); if (nb.length) d.appendChild(el("span", "pill p-mon", "Day before " + gTag(nb[0]) + (nb[0].time ? " · " + nb[0].time : ""))); day.appendChild(d); } }
     const on = lcOn(lcSel);
     on.forEach((b) => day.appendChild(lcBlockEl(b, lcSel)));
     if (!on.length) {
@@ -2333,11 +2352,14 @@ body.dragging .dropveil{display:grid}
     const last = new Date(Date.UTC(Y, M, 0)).toISOString().slice(0, 10), weeks = Math.ceil((dow + Number(last.slice(8))) / 7);
     for (let i = 0; i < weeks * 7; i++) {
       const iso = addDays(start, i), b = el("button", "lc-day" + (iso.slice(0, 7) !== lcMonth ? " out" : "") + (iso === isoToday() ? " today" : "") + (iso === lcSel ? " sel" : ""));
-      b.type = "button"; b.appendChild(el("span", "dn", String(Number(iso.slice(8)))));
-      const bl = lcOn(iso), gm = games.filter((g) => g.date === iso);
-      b.setAttribute("aria-label", `${lcDayLong(iso)}${bl.length ? ": " + bl.map((x) => x.title).join(", ") : ""}${gm.length ? ", game" : ""}`);
+      const bl = lcOn(iso), gm = calGames(iso), gd = gm.some((g) => !g.event), gPrev = calGames(addDays(iso, -1)).some((g) => !g.event), gNext = calGames(addDays(iso, 1)).some((g) => !g.event);
+      if (gd) b.classList.add("gd");
+      b.type = "button"; const top = el("div", "lc-top"); top.appendChild(el("span", "dn", String(Number(iso.slice(8)))));
+      if (!gd && (gNext || gPrev)) top.appendChild(el("span", "lc-g", gNext ? "G−1" : "G+1")); else if (gd) top.appendChild(el("span", "lc-g gday", "GAME"));
+      b.appendChild(top);
+      b.setAttribute("aria-label", `${lcDayLong(iso)}${bl.length ? ": " + bl.map((x) => x.title).join(", ") : ""}${gm.length ? ", game " + gm.map(gTag).join(", ") : ""}`);
       bl.forEach((x) => { const c = el("span", "lc-chip" + (lcOptional(x) ? " opt" : ""), x.title + (x.forcePlate ? " · FP" : "")); c.title = `${x.sheet} · ${x.title}`; b.appendChild(c); });
-      gm.forEach((g) => b.appendChild(el("span", "lc-chip game", (g.site === "Away" ? "@ " : "vs ") + (g.opp || "Game"))));
+      gm.forEach((g) => { const c = el("span", "lc-chip game", gTag(g) + (g.time ? " " + gShortTime(g.time) : "") + (g.tentative ? " ?" : "")); c.title = [gTag(g), g.time, g.site, g.note].filter(Boolean).join(" · "); b.insertBefore(c, b.children[1] || null); });
       b.onclick = () => { lcSel = iso; if (iso.slice(0, 7) !== lcMonth) lcMonth = iso.slice(0, 7); renderLifts(); $("lcDayTitle").scrollIntoView({ behavior: "smooth", block: "start" }); };
       cal.appendChild(b);
     }

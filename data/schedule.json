@@ -1,0 +1,279 @@
+{
+ "season": "2026-27",
+ "source": "ESPN / CBS Sports schedules and ETSU Athletics, pulled Nov 7, 2026",
+ "games": [
+  {
+   "date": "2026-10-25",
+   "opp": "High Point",
+   "site": "Home",
+   "time": "",
+   "note": "Exhibition",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-02",
+   "opp": "Arizona State",
+   "site": "Away",
+   "time": "10:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-06",
+   "opp": "NC State",
+   "site": "Away",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-11",
+   "opp": "Campbell",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "Home opener",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-17",
+   "opp": "Marshall",
+   "site": "Away",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-21",
+   "opp": "Longwood",
+   "site": "Home",
+   "time": "4:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-23",
+   "opp": "Kentucky State",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-27",
+   "opp": "Charleston Southern",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-11-29",
+   "opp": "Morehead State",
+   "site": "Home",
+   "time": "4:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-01",
+   "opp": "Virginia Lynchburg",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-05",
+   "opp": "VMI",
+   "site": "Away",
+   "time": "1:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-08",
+   "opp": "Presbyterian",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-12",
+   "opp": "Jacksonville State",
+   "site": "Away",
+   "time": "5:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-15",
+   "opp": "Northern Kentucky",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-19",
+   "opp": "UNCG",
+   "site": "Home",
+   "time": "4:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-22",
+   "opp": "Furman",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2026-12-30",
+   "opp": "Mercer",
+   "site": "Away",
+   "time": "6:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-02",
+   "opp": "Samford",
+   "site": "Away",
+   "time": "5:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-09",
+   "opp": "Western Carolina",
+   "site": "Home",
+   "time": "4:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-13",
+   "opp": "Tennessee Tech",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-16",
+   "opp": "UNCG",
+   "site": "Away",
+   "time": "2:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-18",
+   "opp": "The Citadel",
+   "site": "Away",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-21",
+   "opp": "Chattanooga",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-24",
+   "opp": "Wofford",
+   "site": "Away",
+   "time": "4:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-27",
+   "opp": "Mercer",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-01-30",
+   "opp": "Furman",
+   "site": "Away",
+   "time": "6:30 PM",
+   "note": "SoCon \u00b7 date not confirmed (ESPN Sat Jan 30 6:30 PM, CBS Sun Jan 31 12:00 PM)",
+   "tentative": true
+  },
+  {
+   "date": "2027-02-03",
+   "opp": "Chattanooga",
+   "site": "Away",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-02-06",
+   "opp": "VMI",
+   "site": "Home",
+   "time": "4:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-02-10",
+   "opp": "Tennessee Tech",
+   "site": "Away",
+   "time": "7:30 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-02-14",
+   "opp": "Wofford",
+   "site": "Home",
+   "time": "2:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-02-18",
+   "opp": "Western Carolina",
+   "site": "Away",
+   "time": "6:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-02-24",
+   "opp": "The Citadel",
+   "site": "Home",
+   "time": "7:00 PM",
+   "note": "SoCon",
+   "tentative": false
+  },
+  {
+   "date": "2027-02-27",
+   "opp": "Samford",
+   "site": "Home",
+   "time": "10:00 AM",
+   "note": "SoCon \u00b7 regular-season finale",
+   "tentative": false
+  }
+ ],
+ "events": [
+  {
+   "start": "2027-03-05",
+   "end": "2027-03-08",
+   "title": "SoCon Tournament",
+   "site": "Neutral",
+   "note": "Asheville, N.C. \u2014 dates depend on seed"
+  }
+ ]
+}
