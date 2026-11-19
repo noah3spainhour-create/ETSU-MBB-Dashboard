@@ -1472,7 +1472,7 @@ body.dragging .dropveil{display:grid}
 
     // row 5: recovery game plan (two columns)
     const RH = 19, rh = 30 + F.steps.length * RH;
-    card(M, y, CW, rh); title("Recovery game plan - do these this week", M + 12, y + 17);
+    card(M, y, CW, rh); title("Recovery game plan", M + 12, y + 17);
     F.steps.forEach((h, k) => {
       const iy = y + 38 + k * RH; doc.setFillColor(...NAVY); doc.circle(M + 19, iy - 3.5, 7, "F"); font(8, "bold", GOLD); doc.text(String(k + 1), M + 19, iy - 0.8, { align: "center" });
       font(10.5, "bold", INK); doc.text(T(h), M + 33, iy);
