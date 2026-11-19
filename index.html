@@ -557,8 +557,8 @@ body.dragging .dropveil{display:grid}
 
   <!-- REPORTS (player + coach) -->
   <section class="view" id="v-reports">
-    <div class="pagehead"><div><h2>Reports</h2><p>Pick which report to build. Both use the test date picked at the top of the page.</p></div>
-      <div class="seg" id="rpSeg" role="group" aria-label="Report type"><button data-k="player">Player report</button><button data-k="coach">Coach report</button></div></div>
+    <div class="pagehead"><div><h2>Reports</h2><p>Pick which report to build. All of them use the test date picked at the top of the page.</p></div>
+      <div class="seg" id="rpSeg" role="group" aria-label="Report type"><button data-k="player">Player report</button><button data-k="coach">Coach report</button><button data-k="team">Team report</button></div></div>
     <div id="rpPlayer">
       <div class="pagehead"><div><h3 style="margin:0 0 4px">Player report</h3><p>A one-page report to hand each player: his jumper type, readiness, where he ranks, his trend, left–right balance, what he's doing well, what to work on, a plain-language summary and a goal for next test.</p></div></div>
       <div class="toolbar">
@@ -576,6 +576,11 @@ body.dragging .dropveil{display:grid}
       <div class="pagehead"><div><h3 style="margin:0 0 4px">Coach report</h3><p>A one-page snapshot for the coaching staff: where each player lands on the quadrant, his bodyweight and his readiness score.</p></div>
         <button class="btn btn-gold" id="pdfBtn">⬇ Download PDF</button></div>
       <div class="paper" id="paper"></div>
+    </div>
+    <div id="rpTeam">
+      <div class="pagehead"><div><h3 style="margin:0 0 4px">Team report</h3><p>A one-page report to send to the players: how the team jumped, how fresh the team is, and what everyone should do to recover. Team numbers only — no player names or quadrant chart.</p></div>
+        <button class="btn btn-gold" id="trDl">⬇ Download PDF</button></div>
+      <div class="paper" id="trPaper"></div>
     </div>
   </section>
 
@@ -1330,11 +1335,11 @@ body.dragging .dropveil{display:grid}
   }
   const prNames = () => curRows().map((r) => r.name).sort();
   let rpKind = (() => { try { return localStorage.getItem("etsu-report-kind") || "player"; } catch (e) { return "player"; } })();
-  function setReportKind(k) { rpKind = k === "coach" ? "coach" : "player"; try { localStorage.setItem("etsu-report-kind", rpKind); } catch (e) { /* ignore */ } }
+  function setReportKind(k) { rpKind = ["coach", "team"].includes(k) ? k : "player"; try { localStorage.setItem("etsu-report-kind", rpKind); } catch (e) { /* ignore */ } }
   function renderReports() {
     document.querySelectorAll("#rpSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === rpKind)));
-    $("rpPlayer").hidden = rpKind !== "player"; $("rpCoach").hidden = rpKind !== "coach";
-    if (rpKind === "coach") renderReport(); else renderPlayerReport();
+    $("rpPlayer").hidden = rpKind !== "player"; $("rpCoach").hidden = rpKind !== "coach"; $("rpTeam").hidden = rpKind !== "team";
+    if (rpKind === "coach") renderReport(); else if (rpKind === "team") renderTeamReport(); else renderPlayerReport();
   }
   function renderPlayerReport() {
     const names = prNames(); if (!names.includes(prName)) prName = names[0];
@@ -1348,6 +1353,155 @@ body.dragging .dropveil{display:grid}
     const fb = el("div", "empty"); fb.append("This browser can't preview PDFs here. Use "); fb.appendChild(el("b", "", "Download PDF")); fb.append(" above."); o.appendChild(fb); p.appendChild(o);
   }
   function savePDF(doc, fname) { const a = document.createElement("a"); a.href = URL.createObjectURL(doc.output("blob")); a.download = fname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+  // ---------- TEAM REPORT (for the players: team numbers only) ----------
+  let trURL = null;
+  function teamFacts() {
+    const cur = curRows(), t = curTeam(), n = cur.length;
+    const prev = t.ref ? A.team.find((o) => o.date === t.ref) : null;
+    const cnt = (b) => cur.filter((r) => r.band === b).length;
+    const split = { ready: cnt("ready"), mon: cnt("mon"), fat: cnt("fat"), none: cnt("none") };
+    const scored = n - split.none, fatShare = scored ? split.fat / scored : 0;
+    const imb = cur.filter((r) => r.max_asym != null && r.max_asym > 15).length, even = cur.filter((r) => r.max_asym != null && r.max_asym <= 10).length;
+    const games = (SCHED && SCHED.games) || [];
+    const next = games.filter((g) => g.date >= date).sort((a, b) => (a.date < b.date ? -1 : 1))[0] || null;
+    const daysTo = next ? Math.round((new Date(next.date + "T12:00") - new Date(date + "T12:00")) / 864e5) : null;
+    const lastGame = games.filter((g) => g.date < date).sort((a, b) => (a.date < b.date ? -1 : 1)).pop() || null;
+    const daysFrom = lastGame ? Math.round((new Date(date + "T12:00") - new Date(lastGame.date + "T12:00")) / 864e5) : null;
+    const sc = t.score;
+    // headline + plain-language summary
+    const head = sc == null ? "This test sets our team baseline." : sc >= 8 ? "We're fresh - jumping above our normal." : sc >= 6.5 ? "We're right around our normal." : sc >= 5 ? "We're a little below our normal." : "We're tired - recovery comes first this week.";
+    const out = [];
+    if (sc == null) out.push("This is our first test, so it sets the team's normal. Readiness scores start next test.");
+    else out.push(`Team readiness averaged ${f1(sc)} out of 10 (7 is our normal). ${split.ready} of us were fresh, ${split.mon} were close to normal and ${split.fat} were tired.`);
+    if (t.jh_chg != null) {
+      const d = IN(t.jh_chg);
+      out.push(Math.abs(d) < 0.25 ? "Team jump height held steady from last test." : d > 0 ? `Team jump height went up ${f1(d)} in from last test.` : `Team jump height dropped ${f1(-d)} in from last test${daysFrom != null && daysFrom <= 2 ? ", which is normal right after a game" : " - legs are carrying some fatigue"}.`);
+    }
+    if (sc != null) out.push(sc >= 7 ? "Whatever you're doing to recover is working - keep it up." : "The fastest way to get our legs back is the basics below: sleep, water and food.");
+    // recovery steps: always the basics, plus what fits this week
+    const steps = [];
+    steps.push(["Sleep 8+ hours", "Same bedtime every night. Phone away 30 minutes before bed. A 20-30 min nap helps on game days."]);
+    steps.push(["Drink water all day", "Aim for half your bodyweight (lb) in ounces each day, more on practice and game days. Pale-yellow pee means you're good."]);
+    steps.push(["Refuel within an hour", "After every practice, lift and game, eat a meal or shake with protein + carbs (e.g. chocolate milk, a turkey sandwich, rice and chicken)."]);
+    if (sc != null && (sc < 6.5 || fatShare >= 0.3)) steps.push(["Recover, don't add load", "Use open weight room for mobility and stretching this week, not extra lifting. Cold tub or compression after games."]);
+    else steps.push(["Keep the routine", "Legs are in a good spot. Keep using open weight room for mobility and prehab so it stays that way."]);
+    if (next && daysTo != null && daysTo <= 3) steps.push([`Game ${daysTo === 0 ? "today" : daysTo === 1 ? "tomorrow" : `in ${daysTo} days`}`, `vs ${next.opp}: the day before, eat extra carbs, drink extra water and stay off your feet when you can.`]);
+    else if (imb >= Math.max(2, Math.ceil(n / 4))) steps.push(["Both legs, every rep", "Several of us are leaning on one leg. Take single-leg warm-ups seriously and land on both feet."]);
+    steps.push(["Speak up", "If something hurts or you feel run down, tell a coach or the athletic trainer early."]);
+    // team goal
+    const goals = [sc == null ? "Get 3 clean jumps every test" : sc < 7 ? "Team readiness back to 7+" : "Hold team readiness at 7+"];
+    goals.push(`Team jump height ${f1(Math.ceil(IN(t.jh) * 10) / 10)}+ in`);
+    return { cur, t, n, prev, split, imb, even, next, daysTo, head, summary: out.join(" "), steps: steps.slice(0, 6), goals };
+  }
+  function buildTeamPDF() {
+    if (!window.jspdf) { toast("The PDF tool didn't load. Check your internet connection and refresh."); return null; }
+    if (!curTeam()) return null;
+    const F = teamFacts(), t = F.t, prev = F.prev, doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+    const PW = 612, M = 36, CW = PW - 2 * M, NAVY = [4, 30, 66], GOLD = [255, 199, 44], INK = [14, 26, 43], MUTED = [93, 104, 121], LINE = [225, 229, 236], SOFT = [244, 246, 249];
+    const GREEN = [28, 127, 71], AMBER = [176, 122, 0], RED = [184, 50, 42], GREY = [190, 197, 207];
+    const T = pdfSafe, font = (sz, st = "normal", col = INK) => { doc.setFont("helvetica", st); doc.setFontSize(sz); doc.setTextColor(...col); };
+    const card = (x, y, w, h, fill = [255, 255, 255]) => { doc.setFillColor(...fill); doc.setDrawColor(...LINE); doc.setLineWidth(0.7); doc.roundedRect(x, y, w, h, 6, 6, "FD"); };
+    const title = (s, x, y) => { font(8, "bold", MUTED); doc.text(T(s.toUpperCase()), x, y); };
+    const scoreCol = (s) => (s == null ? MUTED : s >= 8 ? GREEN : s >= 5 ? AMBER : RED);
+
+    // header
+    doc.setFillColor(...NAVY); doc.rect(0, 0, PW, 74, "F"); doc.setFillColor(...GOLD); doc.rect(0, 74, PW, 4, "F");
+    font(8, "bold", GOLD); doc.text("ETSU MEN'S BASKETBALL  -  TEAM JUMP REPORT", M, 22);
+    font(24, "bold", [255, 255, 255]); doc.text("How We're Doing", M, 52);
+    font(10, "normal", [205, 215, 230]); doc.text(T(dLong(date)), PW - M, 34, { align: "right" });
+    font(8.5, "normal", [170, 185, 210]); doc.text(`${F.n} players tested`, PW - M, 50, { align: "right" });
+
+    // headline
+    let y = 104; font(15, "bold", scoreCol(t.score)); doc.text(T(F.head), M, y);
+    y += 14;
+
+    // row 1: three stat cards
+    const sw = (CW - 20) / 3, sh = 92;
+    const stat = (x, label, big, unit, chgTxt, chgCol, sub) => {
+      card(x, y, sw, sh, SOFT); title(label, x + 12, y + 17);
+      font(26, "bold", INK); doc.text(T(big), x + 12, y + 50);
+      if (unit) { const bw = doc.getTextWidth(T(big)); font(11, "bold", MUTED); doc.text(T(unit), x + 15 + bw, y + 50); }
+      font(8.5, "bold", chgCol); doc.text(T(chgTxt), x + 12, y + 66);
+      font(7.5, "normal", MUTED); doc.text(doc.splitTextToSize(T(sub), sw - 24), x + 12, y + 79);
+    };
+    const chg = (d, fmt, unit) => (d == null ? ["First test - no change yet", MUTED] : Math.abs(d) < 1e-9 ? ["Same as last test", MUTED] : [`${d > 0 ? "Up" : "Down"} ${fmt(Math.abs(d))}${unit} from last test`, d > 0 ? GREEN : RED]);
+    const jc = t.jh_chg == null ? null : IN(t.jh_chg), rc = t.rsi_chg, sc0 = t.score != null && prev && prev.score != null ? t.score - prev.score : null;
+    stat(M, "Team readiness", t.score == null ? "-" : f1(t.score), "/10", ...chg(sc0, f1, ""), "How fresh our legs are. 7 = our normal.");
+    stat(M + sw + 10, "Team jump height", f1(IN(t.jh)), "in", ...chg(jc != null && Math.abs(jc) < 0.05 ? 0 : jc, f1, " in"), "Average of everyone's best jump.");
+    stat(M + 2 * (sw + 10), "Team explosiveness", f2(t.rsi), "", ...chg(rc != null && Math.abs(rc) < 0.005 ? 0 : rc, f2, ""), "How fast we get off the floor. Higher is better.");
+    y += sh + 12;
+
+    // row 2: how fresh the team is
+    const fh = 78; card(M, y, CW, fh); title("How fresh the team is", M + 12, y + 17);
+    font(7.5, "normal", MUTED); doc.text("Each player is compared to his OWN normal, not to teammates.", M + CW - 12, y + 17, { align: "right" });
+    const segs = [["ready", "Fresh (8-10)", GREEN], ["mon", "Close to normal (5-7)", AMBER], ["fat", "Tired (1-4)", RED], ["none", "No score yet", GREY]].filter(([k]) => F.split[k] > 0);
+    let bx = M + 12; const bw = CW - 24, by = y + 28;
+    segs.forEach(([k, , col], i) => {
+      const w = (bw * F.split[k]) / F.n; doc.setFillColor(...col); doc.rect(bx, by, w - (i < segs.length - 1 ? 2 : 0), 18, "F");
+      if (w > 20) { font(10, "bold", [255, 255, 255]); doc.text(String(F.split[k]), bx + w / 2 - 1, by + 12.8, { align: "center" }); }
+      bx += w;
+    });
+    let lx = M + 12; segs.forEach(([k, lab, col]) => { doc.setFillColor(...col); doc.rect(lx, y + 56, 7, 7, "F"); font(8.5, "normal", INK); const s = `${F.split[k]} ${lab}`; doc.text(T(s), lx + 11, y + 62.5); lx += doc.getTextWidth(T(s)) + 28; });
+    y += fh + 12;
+
+    // row 3: trends
+    const th = 118, tw = (CW - 10) / 2, tdates = A.team.filter((x) => x.date <= date).map((x) => x.date).slice(-8);
+    const trend = (tx, label, key, fmt, conv, ref) => {
+      card(tx, y, tw, th); title(label, tx + 12, y + 16);
+      const pts = A.team.filter((x) => tdates.includes(x.date) && x[key] != null).map((x) => ({ d: x.date, v: conv(x[key]) }));
+      if (pts.length < 2) { font(8.5, "normal", MUTED); doc.text("The trend line starts after our second test.", tx + 12, y + th / 2 + 6); return; }
+      const vals = pts.map((p) => p.v).concat(ref == null ? [] : [ref]), e = d3.extent(vals), pad = (e[1] - e[0]) * 0.25 || 1;
+      const cx0 = tx + 34, cx1 = tx + tw - 36, cy0 = y + 28, cy1 = y + th - 20;
+      const XS = d3.scalePoint(tdates, [cx0, cx1]).padding(0.15), YS = d3.scaleLinear([e[0] - pad, e[1] + pad], [cy1, cy0]).nice(3);
+      YS.ticks(3).forEach((v) => { doc.setDrawColor(236, 239, 243); doc.setLineWidth(0.5); doc.line(cx0, YS(v), cx1, YS(v)); font(6.5, "normal", MUTED); doc.text(fmt(v), cx0 - 4, YS(v) + 2, { align: "right" }); });
+      if (ref != null) { doc.setDrawColor(...GREEN); doc.setLineWidth(0.8); doc.setLineDashPattern([2.5, 2], 0); doc.line(cx0, YS(ref), cx1, YS(ref)); doc.setLineDashPattern([], 0); font(6.5, "bold", GREEN); doc.text("our normal", cx1 + 3, YS(ref) + 2); }
+      tdates.forEach((d) => { font(6.5, "normal", MUTED); doc.text(T(dShort(d)), XS(d), cy1 + 11, { align: "center" }); });
+      doc.setDrawColor(...NAVY); doc.setLineWidth(2); for (let i = 1; i < pts.length; i++) doc.line(XS(pts[i - 1].d), YS(pts[i - 1].v), XS(pts[i].d), YS(pts[i].v));
+      pts.forEach((p) => { const now = p.d === date; doc.setFillColor(...(now ? GOLD : NAVY)); doc.setDrawColor(...NAVY); doc.setLineWidth(1.2); doc.circle(XS(p.d), YS(p.v), now ? 3.6 : 2.6, "FD"); });
+      const last = pts[pts.length - 1]; font(8, "bold", NAVY); doc.text(fmt(last.v), XS(last.d) + 6, YS(last.v) - 4);
+    };
+    trend(M, "Team readiness by test (out of 10)", "score", f1, (v) => v, 7);
+    trend(M + tw + 10, "Team jump height by test (in)", "jh", f1, IN, null);
+    y += th + 12;
+
+    // row 4: what it means
+    font(9.5, "normal"); const sl = doc.splitTextToSize(T(F.summary), CW - 32), smh = 30 + sl.length * 13;
+    doc.setFillColor(251, 243, 222); doc.setDrawColor(...LINE); doc.setLineWidth(0.7); doc.roundedRect(M, y, CW, smh, 6, 6, "FD"); doc.setFillColor(...GOLD); doc.rect(M, y + 6, 4, smh - 12, "F");
+    title("What this means", M + 16, y + 17); font(9.5, "normal"); doc.text(sl, M + 16, y + 32, { lineHeightFactor: 1.35 });
+    y += smh + 12;
+
+    // row 5: recovery game plan (two columns)
+    const colW = (CW - 24 - 16) / 2, items = F.steps.map(([h, b]) => ({ h, lines: (font(8.5), doc.splitTextToSize(T(b), colW - 22)) }));
+    const half = Math.ceil(items.length / 2), colH = (arr) => arr.reduce((s, it) => s + 13 + it.lines.length * 10.5 + 8, 0);
+    const rh = 30 + Math.max(colH(items.slice(0, half)), colH(items.slice(half)));
+    card(M, y, CW, rh); title("Recovery game plan - do these this week", M + 12, y + 17);
+    [items.slice(0, half), items.slice(half)].forEach((arr, ci) => {
+      let iy = y + 34; const ix = M + 12 + ci * (colW + 16);
+      arr.forEach((it, j) => {
+        const num = ci * half + j + 1; doc.setFillColor(...NAVY); doc.circle(ix + 7, iy - 3.5, 7, "F"); font(8, "bold", GOLD); doc.text(String(num), ix + 7, iy - 0.8, { align: "center" });
+        font(9.5, "bold", INK); doc.text(T(it.h), ix + 20, iy); font(8.5, "normal", INK); doc.text(it.lines, ix + 20, iy + 12);
+        iy += 13 + it.lines.length * 10.5 + 8;
+      });
+    });
+    y += rh + 12;
+
+    // goal bar
+    doc.setFillColor(...NAVY); doc.roundedRect(M, y, CW, 32, 6, 6, "F"); font(8, "bold", GOLD); doc.text("TEAM GOAL NEXT TEST", M + 14, y + 20);
+    font(11, "bold", [255, 255, 255]); doc.text(T(F.goals.join("   |   ")), M + 140, y + 20.5);
+
+    // footer glossary
+    font(7, "normal", MUTED);
+    doc.text(doc.splitTextToSize(T("How it works: once a week you do 3 max-effort jumps on the force plates. Jump height = how high you go. Explosiveness = jump height divided by how long it takes you to get off the floor. Readiness compares today's jump to your own last few tests - 7 means you jumped like your usual self."), CW), M, 760);
+    return doc;
+  }
+  function renderTeamReport() {
+    const p = $("trPaper"); p.replaceChildren();
+    if (!curTeam()) { p.appendChild(el("div", "empty", "No test on this date yet. Add a ForceDecks CSV on the Data & uploads tab.")); return; }
+    const doc = buildTeamPDF(); if (!doc) { p.appendChild(el("div", "empty", "The PDF tool didn't load. Check your internet connection and refresh.")); return; }
+    if (trURL) URL.revokeObjectURL(trURL); trURL = URL.createObjectURL(doc.output("blob"));
+    const o = document.createElement("object"); o.data = trURL + "#toolbar=0&view=FitH"; o.type = "application/pdf"; o.className = "pdfview";
+    const fb = el("div", "empty"); fb.append("This browser can't preview PDFs here. Use "); fb.appendChild(el("b", "", "Download PDF")); fb.append(" above."); o.appendChild(fb); p.appendChild(o);
+  }
   function stepPlayer(d) { const n = prNames(), i = n.indexOf(prName); prName = n[(i + d + n.length) % n.length]; renderPlayerReport(); }
 
   // ---------- READINESS ----------
@@ -2449,6 +2603,7 @@ body.dragging .dropveil{display:grid}
     if (h === "program") h = "lifts";
     if (h === "report" || h === "coach-report") { setReportKind("coach"); h = "reports"; }
     if (h === "player-report") { setReportKind("player"); h = "reports"; }
+    if (h === "team-report") { setReportKind("team"); h = "reports"; }
     view = ["home", "profiles", "readiness", "games", "lifts", "symmetry", "reports", "extra", "data"].includes(h) ? h : "home"; closeDrawer(); render(); window.scrollTo(0, 0); }
   window.addEventListener("hashchange", route);
   $("file").addEventListener("change", (e) => { addFiles([...e.target.files]); e.target.value = ""; });
@@ -2500,6 +2655,7 @@ body.dragging .dropveil{display:grid}
   document.addEventListener("click", (e) => { if (popFor && !e.target.closest("#xhPop") && !e.target.closest(".xh-treat")) closePop(); });
   window.addEventListener("resize", closePop);
   $("pdfBtn").addEventListener("click", downloadPDF);
+  $("trDl").addEventListener("click", () => { const d = buildTeamPDF(); if (d) savePDF(d, `ETSU-MBB-Team-Report-${date}.pdf`); });
   document.querySelectorAll("#rpSeg button").forEach((b) => b.addEventListener("click", () => { setReportKind(b.dataset.k); renderReports(); }));
   document.querySelectorAll("#symMetric button").forEach((b) => b.addEventListener("click", () => { symM = b.dataset.m; renderSymmetry(); }));
   document.querySelectorAll("#symSort button").forEach((b) => b.addEventListener("click", () => { symSortBy = b.dataset.s; renderSymmetry(); }));
