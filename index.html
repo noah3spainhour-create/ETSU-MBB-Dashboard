@@ -1380,14 +1380,14 @@ body.dragging .dropveil{display:grid}
     if (sc != null) out.push(sc >= 7 ? "Whatever you're doing to recover is working - keep it up." : "The fastest way to get our legs back is the basics below: sleep, water and food.");
     // recovery steps: always the basics, plus what fits this week
     const steps = [];
-    steps.push(["Sleep 8+ hours", "Same bedtime every night. Phone away 30 minutes before bed. A 20-30 min nap helps on game days."]);
-    steps.push(["Drink water all day", "Aim for half your bodyweight (lb) in ounces each day, more on practice and game days. Pale-yellow pee means you're good."]);
-    steps.push(["Refuel within an hour", "After every practice, lift and game, eat a meal or shake with protein + carbs (e.g. chocolate milk, a turkey sandwich, rice and chicken)."]);
-    if (sc != null && (sc < 6.5 || fatShare >= 0.3)) steps.push(["Recover, don't add load", "Use open weight room for mobility and stretching this week, not extra lifting. Cold tub or compression after games."]);
-    else steps.push(["Keep the routine", "Legs are in a good spot. Keep using open weight room for mobility and prehab so it stays that way."]);
-    if (next && daysTo != null && daysTo <= 3) steps.push([`Game ${daysTo === 0 ? "today" : daysTo === 1 ? "tomorrow" : `in ${daysTo} days`}`, `vs ${next.opp}: the day before, eat extra carbs, drink extra water and stay off your feet when you can.`]);
-    else if (imb >= Math.max(2, Math.ceil(n / 4))) steps.push(["Both legs, every rep", "Several of us are leaning on one leg. Take single-leg warm-ups seriously and land on both feet."]);
-    steps.push(["Speak up", "If something hurts or you feel run down, tell a coach or the athletic trainer early."]);
+    steps.push("Sleep 8+ hours every night");
+    steps.push("Drink water all day - more on practice and game days");
+    steps.push("Eat protein + carbs within 1 hour after practice, lifts and games");
+    if (sc != null && (sc < 6.5 || fatShare >= 0.3)) steps.push("Use open weight room for recovery work, not extra lifting");
+    else steps.push("Keep your recovery routine going - it's working");
+    if (next && daysTo != null && daysTo <= 3) steps.push(`Game ${daysTo === 0 ? "today" : daysTo === 1 ? "tomorrow" : `in ${daysTo} days`} vs ${next.opp}: extra carbs and water the day before`);
+    else if (imb >= Math.max(2, Math.ceil(n / 4))) steps.push("Use both legs evenly - don't skip single-leg warm-ups");
+    steps.push("Tell a coach or trainer early if something hurts");
     // team goal
     const goals = [sc == null ? "Get 3 clean jumps every test" : sc < 7 ? "Team readiness back to 7+" : "Hold team readiness at 7+"];
     goals.push(`Team jump height ${f1(Math.ceil(IN(t.jh) * 10) / 10)}+ in`);
@@ -1471,17 +1471,11 @@ body.dragging .dropveil{display:grid}
     y += smh + 12;
 
     // row 5: recovery game plan (two columns)
-    const colW = (CW - 24 - 16) / 2, items = F.steps.map(([h, b]) => ({ h, lines: (font(8.5), doc.splitTextToSize(T(b), colW - 22)) }));
-    const half = Math.ceil(items.length / 2), colH = (arr) => arr.reduce((s, it) => s + 13 + it.lines.length * 10.5 + 8, 0);
-    const rh = 30 + Math.max(colH(items.slice(0, half)), colH(items.slice(half)));
+    const RH = 19, rh = 30 + F.steps.length * RH;
     card(M, y, CW, rh); title("Recovery game plan - do these this week", M + 12, y + 17);
-    [items.slice(0, half), items.slice(half)].forEach((arr, ci) => {
-      let iy = y + 34; const ix = M + 12 + ci * (colW + 16);
-      arr.forEach((it, j) => {
-        const num = ci * half + j + 1; doc.setFillColor(...NAVY); doc.circle(ix + 7, iy - 3.5, 7, "F"); font(8, "bold", GOLD); doc.text(String(num), ix + 7, iy - 0.8, { align: "center" });
-        font(9.5, "bold", INK); doc.text(T(it.h), ix + 20, iy); font(8.5, "normal", INK); doc.text(it.lines, ix + 20, iy + 12);
-        iy += 13 + it.lines.length * 10.5 + 8;
-      });
+    F.steps.forEach((h, k) => {
+      const iy = y + 38 + k * RH; doc.setFillColor(...NAVY); doc.circle(M + 19, iy - 3.5, 7, "F"); font(8, "bold", GOLD); doc.text(String(k + 1), M + 19, iy - 0.8, { align: "center" });
+      font(10.5, "bold", INK); doc.text(T(h), M + 33, iy);
     });
     y += rh + 12;
 
