@@ -1369,7 +1369,7 @@ body.dragging .dropveil{display:grid}
     const daysFrom = lastGame ? Math.round((new Date(date + "T12:00") - new Date(lastGame.date + "T12:00")) / 864e5) : null;
     const sc = t.score;
     // headline + plain-language summary
-    const head = sc == null ? "This test sets our team baseline." : sc >= 8 ? "We're fresh - jumping above our normal." : sc >= 6.5 ? "We're right around our normal." : sc >= 5 ? "We're a little below our normal." : "We're tired - recovery comes first this week.";
+    const head = sc == null ? "This test sets our team baseline." : sc >= 8 ? "We're fresh - jumping above our normal." : sc >= 6.5 ? "We're right around our normal." : sc >= 5 ? "We're a little below our normal." : "We're tired - focus on recovery.";
     const out = [];
     if (sc == null) out.push("This is our first test, so it sets the team's normal. Readiness scores start next test.");
     else out.push(`Team readiness averaged ${f1(sc)} out of 10 (7 is our normal). ${split.ready} of us were fresh, ${split.mon} were close to normal and ${split.fat} were tired.`);
